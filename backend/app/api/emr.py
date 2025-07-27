@@ -12,6 +12,7 @@ from app.schemas.emr import (
     EMRSaveRequest,
     EMRSaveResponse,
     EMRRecord,
+    PatientListResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,13 @@ def save_emr(
         logger.error(f"Unexpected error in save_emr: {str(e)}")
         logger.error(f"Request data: {request}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"데이터 처리 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.get("/patients", response_model=List[PatientListResponse])
+def get_patients(db: Session = Depends(get_db)):
+    """모든 환자 목록을 조회합니다."""
+    patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
+    return patients
 
 
 @router.get("/records/{patient_id}", response_model=List[EMRRecord])

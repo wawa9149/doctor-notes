@@ -1,25 +1,27 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { AnalyzeResponse } from "../services/apiClient";
+import type { AnalyzeResponse, PatientListItem } from "../services/apiClient";
 import { saveEMR } from "../services/apiClient";
 import AnalysisCard from "../components/AnalysisCard";
 
 interface LocationState {
   analysisData: AnalyzeResponse;
   conversationText: string;
+  selectedPatient: PatientListItem | null;
 }
 
 export default function Analysis() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { analysisData, conversationText } = location.state as LocationState;
+  const { analysisData, conversationText, selectedPatient } =
+    location.state as LocationState;
 
   const [loading, setLoading] = useState(false);
   const [patientInfo, setPatientInfo] = useState({
-    name: "",
-    birthDate: "",
-    gender: "",
-    identifier: "", // 차트번호
+    name: selectedPatient?.name.text || "",
+    birthDate: selectedPatient?.birth_date || "",
+    gender: selectedPatient?.gender || "",
+    identifier: selectedPatient?.identifier || "", // 차트번호
   });
 
   const handleInputChange = (
@@ -53,14 +55,6 @@ export default function Analysis() {
 
     try {
       setLoading(true);
-      console.log("Request Data:", {
-        patient_identifier: patientInfo.identifier,
-        patient_name: patientInfo.name,
-        patient_birth_date: patientInfo.birthDate,
-        patient_gender: patientInfo.gender,
-        conversation_text: conversationText,
-        llm_analysis_result: analysisData,
-      });
       const response = await saveEMR({
         patient_identifier: patientInfo.identifier,
         patient_name: patientInfo.name,
@@ -81,7 +75,7 @@ export default function Analysis() {
   };
 
   return (
-    <div className="flex flex-col w-screen p-8 items-center justify-center">
+    <div className="flex flex-col w-screen items-center justify-center">
       <h1 className="text-2xl font-bold mb-6 text-center">
         진료 내용 분석 결과
       </h1>
@@ -100,6 +94,7 @@ export default function Analysis() {
               onChange={handleInputChange}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="차트번호를 입력하세요"
+              readOnly={!!selectedPatient}
             />
           </div>
           <div>
@@ -113,6 +108,7 @@ export default function Analysis() {
               onChange={handleInputChange}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="환자 이름을 입력하세요"
+              readOnly={!!selectedPatient}
             />
           </div>
           <div>
@@ -125,6 +121,7 @@ export default function Analysis() {
               value={patientInfo.birthDate}
               onChange={handleInputChange}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              readOnly={!!selectedPatient}
             />
           </div>
           <div>
@@ -136,6 +133,7 @@ export default function Analysis() {
               value={patientInfo.gender}
               onChange={handleInputChange}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={!!selectedPatient}
             >
               <option value="">선택해주세요</option>
               <option value="male">남성</option>

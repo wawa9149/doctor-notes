@@ -112,7 +112,24 @@ export interface EMRRecord {
   conversation?: ConversationResponse;
 }
 
+export interface PatientListItem {
+  id: number;
+  identifier: string;
+  name: { text: string };
+  gender: string;
+  birth_date: string;
+  created_at: string;
+}
+
 // --- API Functions ---
+
+export async function getPatients(): Promise<PatientListItem[]> {
+  const response = await fetch(`${API_BASE_URL}/emr/patients`, {
+    credentials: "include",
+  });
+  if (!response.ok) throw new Error("환자 목록 조회 실패");
+  return response.json();
+}
 
 export async function analyzeDialogue(text: string): Promise<AnalyzeResponse> {
   const response = await fetch(`${API_BASE_URL}/analyze`, {

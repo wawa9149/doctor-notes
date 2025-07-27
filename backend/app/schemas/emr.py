@@ -7,7 +7,7 @@ class CodeableConcept(BaseModel):
     text: str
 
 class Period(BaseModel):
-    start: datetime
+    start: Optional[datetime] = None
     end: Optional[datetime] = None
 
 # 공통 설정
@@ -20,6 +20,15 @@ model_config_with_json_encoders = ConfigDict(
 )
 
 # 응답 스키마
+class PatientListResponse(BaseModel):
+    id: int
+    identifier: str
+    name: Dict[str, Any]
+    gender: str
+    birth_date: date
+    created_at: datetime
+    model_config = model_config_with_json_encoders
+
 class EncounterResponse(BaseModel):
     id: int
     status: str

@@ -106,13 +106,11 @@ class FHIRMapper:
                     effective_period = med.get("effective_period", {})
                     if isinstance(effective_period, dict):
                         if "start" in effective_period:
-                            effective_period["start"] = self._datetime_to_str(
-                                self._to_datetime(effective_period["start"])
-                            )
+                            effective_period["start"] = self._to_datetime(effective_period["start"])
                         if "end" in effective_period:
-                            effective_period["end"] = self._datetime_to_str(
-                                self._to_datetime(effective_period["end"])
-                            )
+                            effective_period["end"] = self._to_datetime(effective_period["end"])
+                    else:
+                        effective_period = {"start": None, "end": None}
 
                     med_data = {
                         "encounter_id": encounter_id,
