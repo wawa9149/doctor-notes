@@ -75,87 +75,96 @@ export default function Analysis() {
   };
 
   return (
-    <div className="flex flex-col w-screen items-center justify-center">
-      <h1 className="text-2xl font-bold mb-6 text-center">
-        진료 내용 분석 결과
-      </h1>
+    <div className="w-screen bg-gray-50 min-h-screen p-10">
+      <div className="w-full px-4">
+        <h1 className="text-3xl font-bold mb-8 text-left text-gray-800">
+          🧑🏻‍⚕️ 진료 내용 분석 결과
+        </h1>
 
-      <div className="mb-8 p-6 bg-white rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">환자 정보 입력</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              차트번호
-            </label>
-            <input
-              type="text"
-              name="identifier"
-              value={patientInfo.identifier}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="차트번호를 입력하세요"
-              readOnly={!!selectedPatient}
-            />
+        <div className="flex flex-col lg:flex-row gap-8 w-full">
+          {/* Left Column: Patient Info */}
+          <div className="lg:w-2/5 w-full p-6 bg-white rounded-xl shadow-lg h-fit">
+            <h2 className="text-2xl font-semibold mb-6 text-gray-700 border-b pb-4">
+              환자 정보 입력
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  차트번호
+                </label>
+                <input
+                  type="text"
+                  name="identifier"
+                  value={patientInfo.identifier}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 read-only:bg-gray-100"
+                  placeholder="차트번호를 입력하세요"
+                  readOnly={!!selectedPatient}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  이름
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={patientInfo.name}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 read-only:bg-gray-100"
+                  placeholder="환자 이름을 입력하세요"
+                  readOnly={!!selectedPatient}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  생년월일
+                </label>
+                <input
+                  type="date"
+                  name="birthDate"
+                  value={patientInfo.birthDate}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 read-only:bg-gray-100"
+                  readOnly={!!selectedPatient}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  성별
+                </label>
+                <select
+                  name="gender"
+                  value={patientInfo.gender}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                  disabled={!!selectedPatient}
+                >
+                  <option value="">선택해주세요</option>
+                  <option value="male">남성</option>
+                  <option value="female">여성</option>
+                  <option value="other">기타</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              이름
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={patientInfo.name}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="환자 이름을 입력하세요"
-              readOnly={!!selectedPatient}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              생년월일
-            </label>
-            <input
-              type="date"
-              name="birthDate"
-              value={patientInfo.birthDate}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              readOnly={!!selectedPatient}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              성별
-            </label>
-            <select
-              name="gender"
-              value={patientInfo.gender}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={!!selectedPatient}
-            >
-              <option value="">선택해주세요</option>
-              <option value="male">남성</option>
-              <option value="female">여성</option>
-              <option value="other">기타</option>
-            </select>
+
+          {/* Right Column: Analysis Results */}
+          <div className="lg:w-3/5 w-full">
+            <AnalysisCard data={analysisData} />
           </div>
         </div>
-      </div>
 
-      <div className="mb-8">
-        <AnalysisCard data={analysisData} />
-      </div>
-
-      <div className="text-center">
-        <button
-          onClick={handleSave}
-          disabled={loading}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? "저장 중..." : "진료 기록 저장"}
-        </button>
+        {/* Save Button */}
+        <div className="text-center mt-8">
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:opacity-50 transition-colors duration-300"
+          >
+            {loading ? "저장 중..." : "진료 기록 저장"}
+          </button>
+        </div>
       </div>
     </div>
   );

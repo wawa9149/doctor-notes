@@ -96,6 +96,16 @@ def get_patients(db: Session = Depends(get_db)):
     patients = db.query(Patient).order_by(Patient.created_at.desc()).all()
     return patients
 
+@router.get("/patients/{patient_id}", response_model=PatientListResponse)
+def get_patient(patient_id: int, db: Session = Depends(get_db)):
+    """환자 상세 정보를 조회합니다."""
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="환자를 찾을 수 없습니다."
+        )
+    return patient
 
 @router.get("/records/{patient_id}", response_model=List[EMRRecord])
 def get_patient_records(

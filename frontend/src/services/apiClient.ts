@@ -153,6 +153,14 @@ export async function saveEMR(data: EMRSaveRequest): Promise<EMRSaveResponse> {
   return response.json();
 }
 
+export async function getPatient(patientId: number): Promise<PatientListItem> {
+  const response = await fetch(`${API_BASE_URL}/emr/patients/${patientId}`, {
+    credentials: "include",
+  });
+  if (!response.ok) throw new Error("환자 정보 조회 실패");
+  return response.json();
+}
+
 export async function getPatientRecords(
   patientId: number
 ): Promise<EMRRecord[]> {

@@ -48,6 +48,9 @@ def analyze_with_llm(text: str) -> Dict[str, Any]:
     logger.info("대화 분석을 시작합니다.")
     
     try:
+        # 현재 시간을 미리 설정
+        current_time = datetime.utcnow().isoformat()
+        
         completion = client.chat.completions.create(
             model=settings.AZURE_DEPLOYMENT_NAME,
             messages=[
@@ -66,7 +69,7 @@ def analyze_with_llm(text: str) -> Dict[str, Any]:
   - `status`: 'finished' (진료가 완료되었으므로)
   - `class`: 'AMB' (Ambulatory - 외래)
   - `type`: '진료'
-  - `period.start`: 진료 시작 시간 (대화 내용에서 유추, 없으면 현재 시간)
+  - `period.start`: 진료 시작 시간 (현재 시간으로 설정)
   - `reason_text`: 방문 이유 (환자가 주로 호소하는 문제)
 
 - **Condition**: 진단명
@@ -80,7 +83,7 @@ def analyze_with_llm(text: str) -> Dict[str, Any]:
   - `status`: 'final'
   - `code.text`: 관찰 항목명 (예: "수면 문제", "불안", "식욕 저하")
   - `value_string`: 환자의 상태에 대한 구체적인 설명 (환자의 말을 인용하거나 요약)
-  - `effective_datetime`: 관찰된 시점 (대화에서 유추, 없으면 현재 시간)
+  - `effective_datetime`: 관찰된 시점 (현재 시간으로 설정)
 
 - **MedicationStatement**: 복용 중인 약물 (여러 개일 수 있음)
   - `status`: 'active' (현재 복용 중인 경우)
@@ -109,6 +112,16 @@ def analyze_with_llm(text: str) -> Dict[str, Any]:
         
         try:
             result_dict = json.loads(result_str)
+            # 현재 시간으로 period.start와 effective_datetime 강제 설정
+            if "Encounter" in result_dict:
+                if "period" not in result_dict["Encounter"]:
+                    result_dict["Encounter"]["period"] = {}
+                result_dict["Encounter"]["period"]["start"] = current_time
+
+            if "Observation" in result_dict and isinstance(result_dict["Observation"], list):
+                for obs in result_dict["Observation"]:
+                    obs["effective_datetime"] = current_time
+
             logger.info("JSON 파싱 성공")
             return result_dict
         except json.JSONDecodeError as e:
@@ -116,7 +129,6 @@ def analyze_with_llm(text: str) -> Dict[str, Any]:
             logger.error(f"문제가 있는 JSON 문자열: {result_str}")
             
             # 기본 구조 반환
-            current_time = datetime.utcnow().isoformat()
             return {
                 "Patient": {
                     "name": {"text": "알 수 없음"},
