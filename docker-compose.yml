@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  # 백엔드 서비스
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: doctor-notes-backend
+    ports:
+      - "8003:8000"
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./backend:/app
+    networks:
+      - doctor-notes-network
+    restart: unless-stopped
+
+  # 프론트엔드 서비스
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: doctor-notes-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - doctor-notes-network
+    restart: unless-stopped
+
+  # 개발용 프론트엔드 (핫 리로드 지원)
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: doctor-notes-frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - backend
+    networks:
+      - doctor-notes-network
+    profiles:
+      - dev
+
+networks:
+  doctor-notes-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  node_modules:
