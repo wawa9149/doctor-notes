@@ -14,4 +14,5 @@ dist
 build
 coverage
 .vscode
-.idea 
+.idea
+env.dev

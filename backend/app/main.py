@@ -9,9 +9,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",  # Vite 개발 서버
-        "http://localhost:8080",  # nginx 프로덕션
         "http://147.47.41.49:5173",  # 서버 IP
-        "http://147.47.41.49:8080",  # 서버 IP 프로덕션
+        "http://147.47.41.49:8081",  # 서버 IP 프로덕션
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
