@@ -1,26 +1,30 @@
-// src/pages/Home.tsx
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  analyzeDialogue,
-  getPatients,
-  type PatientListItem,
-} from "../services/apiClient";
+"use client";
 
-export default function Home() {
-  const navigate = useNavigate();
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { usePatients } from "@/hooks/usePatients";
+import { useAnalysis } from "@/hooks/useEMR";
+import { deletePatient } from "@/services/patientService";
+import type { PatientListItem } from "@/types/patient";
+
+export default function HomePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"new" | "records">("new");
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [patients, setPatients] = useState<PatientListItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] =
     useState<PatientListItem | null>(null);
+  const [deletingPatientId, setDeletingPatientId] = useState<number | null>(
+    null
+  );
 
-  useEffect(() => {
-    // 환자 목록 로드
-    getPatients().then(setPatients).catch(console.error);
-  }, []);
+  // React 19의 use Hook 사용
+  const patients = usePatients();
+  const {
+    analyzeText,
+    loading: analysisLoading,
+    error: analysisError,
+  } = useAnalysis();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,20 +34,47 @@ export default function Home() {
     }
 
     try {
-      setLoading(true);
-      const analysisData = await analyzeDialogue(text);
-      navigate("/analysis", {
-        state: {
+      const analysisData = await analyzeText(text);
+      // Next.js에서는 URL 파라미터나 세션스토리지를 사용
+      sessionStorage.setItem(
+        "analysisData",
+        JSON.stringify({
           analysisData,
           conversationText: text,
           selectedPatient,
-        },
-      });
+        })
+      );
+      router.push("/analysis");
     } catch (error) {
       console.error("분석 실패:", error);
       alert("분석에 실패했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 환자 삭제 함수
+  const handleDeletePatient = async (
+    patientId: number,
+    patientName: string
+  ) => {
+    if (
+      !confirm(
+        `환자 "${patientName}"을(를) 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeletingPatientId(patientId);
+      await deletePatient(patientId);
+      alert("환자가 삭제되었습니다.");
+      // 페이지 새로고침으로 데이터 다시 로드
+      window.location.reload();
+    } catch (error) {
+      console.error("환자 삭제 실패:", error);
+      alert("환자 삭제에 실패했습니다.");
     } finally {
-      setLoading(false);
+      setDeletingPatientId(null);
     }
   };
 
@@ -59,6 +90,15 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-center mb-8">🏥 Doctor Notes</h1>
 
+        {/* 에러 처리 */}
+        {analysisError && (
+          <div className="max-w-3xl mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600">
+              분석 중 오류가 발생했습니다: {analysisError.message}
+            </p>
+          </div>
+        )}
+
         {/* 탭 네비게이션 */}
         <div className="flex justify-center mb-8">
           <div className="bg-white rounded-lg shadow-sm p-1">
@@ -73,7 +113,10 @@ export default function Home() {
               새로운 진료 시작
             </button>
             <button
-              onClick={() => setActiveTab("records")}
+              onClick={() => {
+                console.log("환자 기록 조회 버튼 클릭됨");
+                setActiveTab("records");
+              }}
               className={`px-6 py-2 rounded-md transition-colors ${
                 activeTab === "records"
                   ? "bg-blue-500 text-white"
@@ -121,10 +164,10 @@ export default function Home() {
                 />
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={analysisLoading}
                   className="w-full mt-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {loading ? "분석 중..." : "대화 분석"}
+                  {analysisLoading ? "분석 중..." : "대화 분석"}
                 </button>
               </form>
             </div>
@@ -162,12 +205,25 @@ export default function Home() {
                         차트번호: {patient.identifier}
                       </p>
                     </div>
-                    <button
-                      onClick={() => navigate(`/records/${patient.id}`)}
-                      className="px-3 py-1 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
-                    >
-                      기록 보기
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => router.push(`/records/${patient.id}`)}
+                        className="px-3 py-1 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
+                      >
+                        기록 보기
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDeletePatient(patient.id, patient.name.text)
+                        }
+                        disabled={deletingPatientId === patient.id}
+                        className="px-3 py-1 bg-red-100 text-red-600 rounded-md hover:bg-red-200 disabled:opacity-50"
+                      >
+                        {deletingPatientId === patient.id
+                          ? "삭제 중..."
+                          : "삭제"}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <p className="text-gray-600">

@@ -138,3 +138,118 @@ def get_patient_records(
         records.append(record)
     
     return records
+
+
+@router.delete("/records/{encounter_id}")
+def delete_encounter_record(
+    encounter_id: int,
+    db: Session = Depends(get_db)
+):
+    """특정 진료 기록을 삭제합니다."""
+    try:
+        # Encounter 조회
+        encounter = db.query(Encounter).filter(Encounter.id == encounter_id).first()
+        if not encounter:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="진료 기록을 찾을 수 없습니다."
+            )
+        
+        # 관련 데이터 삭제 (CASCADE 설정에 따라 자동 삭제됨)
+        # Conversation 삭제
+        if encounter.conversation:
+            db.delete(encounter.conversation)
+        
+        # Condition 삭제
+        for condition in encounter.conditions:
+            db.delete(condition)
+        
+        # Observation 삭제
+        for observation in encounter.observations:
+            db.delete(observation)
+        
+        # MedicationStatement 삭제
+        for medication in encounter.medications:
+            db.delete(medication)
+        
+        # Encounter 삭제
+        db.delete(encounter)
+        db.commit()
+        
+        return {"message": "진료 기록이 성공적으로 삭제되었습니다."}
+        
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error in delete_encounter_record: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"데이터베이스 오류가 발생했습니다: {str(e)}"
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error in delete_encounter_record: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"기록 삭제 중 오류가 발생했습니다: {str(e)}"
+        )
+
+
+@router.delete("/patients/{patient_id}")
+def delete_patient(
+    patient_id: int,
+    db: Session = Depends(get_db)
+):
+    """환자와 관련된 모든 데이터를 삭제합니다."""
+    try:
+        # 환자 조회
+        patient = db.query(Patient).filter(Patient.id == patient_id).first()
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="환자를 찾을 수 없습니다."
+            )
+        
+        # 환자의 모든 Encounter 조회
+        encounters = db.query(Encounter).filter(Encounter.patient_id == patient_id).all()
+        
+        # 각 Encounter의 관련 데이터 삭제
+        for encounter in encounters:
+            # Conversation 삭제
+            if encounter.conversation:
+                db.delete(encounter.conversation)
+            
+            # Condition 삭제
+            for condition in encounter.conditions:
+                db.delete(condition)
+            
+            # Observation 삭제
+            for observation in encounter.observations:
+                db.delete(observation)
+            
+            # MedicationStatement 삭제
+            for medication in encounter.medications:
+                db.delete(medication)
+            
+            # Encounter 삭제
+            db.delete(encounter)
+        
+        # 환자 삭제
+        db.delete(patient)
+        db.commit()
+        
+        return {"message": "환자와 관련된 모든 데이터가 성공적으로 삭제되었습니다."}
+        
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error in delete_patient: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"데이터베이스 오류가 발생했습니다: {str(e)}"
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error in delete_patient: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"환자 삭제 중 오류가 발생했습니다: {str(e)}"
+        )
