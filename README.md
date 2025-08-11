@@ -32,20 +32,20 @@ doctor-notes/
 │   ├── Dockerfile        # 프로덕션용
 │   └── Dockerfile.dev    # 개발용
 ├── backend/              # FastAPI 백엔드
-├── frontend-vite-backup/ # 기존 Vite 프로젝트 (백업)
+│   ├── app/
+│   │   ├── api/          # API 라우터
+│   │   ├── models/       # SQLAlchemy 모델
+│   │   ├── schemas/      # Pydantic 스키마
+│   │   ├── services/     # 비즈니스 로직
+│   │   ├── core/         # 핵심 설정
+│   │   └── utils/        # 유틸리티 함수
+│   ├── requirements.txt  # Python 의존성
+│   ├── Dockerfile        # 프로덕션용
+│   └── Dockerfile.dev    # 개발용
 └── docker-compose.yml    # Docker 설정
 ```
 
 ## 🏗️ 주요 기능
-
-### **React 19 최신 기능**
-
-- **use Hook** - Promise 직접 처리
-- **Suspense** - 자동 로딩 상태 관리
-- **서버 컴포넌트** - 서버에서 데이터 페칭
-- **App Router** - 파일 기반 라우팅
-
-### **의료 앱 특화 기능**
 
 - 환자 정보 관리
 - 상담 내용 분석
