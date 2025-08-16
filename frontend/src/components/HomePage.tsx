@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { usePatients } from "@/hooks/usePatients";
 import { useAnalysis } from "@/hooks/useEMR";
+import { useSTT } from "@/hooks/useSTT";
 import { deletePatient } from "@/services/patientService";
 import type { PatientListItem } from "@/types/patient";
 
@@ -17,14 +18,31 @@ export default function HomePage() {
   const [deletingPatientId, setDeletingPatientId] = useState<number | null>(
     null
   );
+  const [isClient, setIsClient] = useState(false);
 
   // React 19의 use Hook 사용
   const patients = usePatients();
+
+  // 클라이언트 사이드에서만 실행
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const {
     analyzeText,
     loading: analysisLoading,
     error: analysisError,
   } = useAnalysis();
+  
+  // 음성 녹음 훅
+  const {
+    isRecording,
+    isProcessing,
+    transcript,
+    startRecording,
+    stopRecording,
+    resetTranscript,
+    error: sttError,
+  } = useSTT();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +153,7 @@ export default function HomePage() {
               <h2 className="text-xl font-semibold mb-4">환자 선택</h2>
               <select
                 className="w-full p-2 border border-gray-300 rounded-md"
-                value={selectedPatient?.id || ""}
+                value={isClient ? (selectedPatient?.id || "") : ""}
                 onChange={(e) => {
                   const patient = patients.find(
                     (p) => p.id === Number(e.target.value)
@@ -144,7 +162,7 @@ export default function HomePage() {
                 }}
               >
                 <option value="">새로운 환자</option>
-                {patients.map((patient) => (
+                {isClient && patients.map((patient) => (
                   <option key={patient.id} value={patient.id}>
                     {patient.name.text} ({patient.identifier}) -{" "}
                     {new Date(patient.birth_date).toLocaleDateString()}
@@ -155,20 +173,79 @@ export default function HomePage() {
 
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-semibold mb-4">진료 대화 입력</h2>
+              
+              {/* STT 에러 표시 */}
+              {sttError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-sm">{sttError}</p>
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit}>
+                {/* 음성 녹음 컨트롤 */}
+                <div className="mb-4 flex items-center space-x-4">
+                  <button
+                    type="button"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    disabled={isProcessing}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      isRecording
+                        ? 'bg-red-500 text-white hover:bg-red-600'
+                        : 'bg-green-500 text-white hover:bg-green-600'
+                    } disabled:opacity-50`}
+                  >
+                    {isRecording ? '🔴 녹음 중지' : '🎤 음성 녹음'}
+                  </button>
+                  
+                  {transcript && (
+                    <button
+                      type="button"
+                      onClick={resetTranscript}
+                      className="px-3 py-2 text-gray-600 hover:text-gray-800"
+                    >
+                      🗑️ 초기화
+                    </button>
+                  )}
+                  
+                  {isProcessing && (
+                    <span className="text-blue-600 text-sm">음성 처리 중...</span>
+                  )}
+                </div>
+                
+                {/* 음성 인식 결과 표시 */}
+                {transcript && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-blue-800 text-sm font-medium mb-2">음성 인식 결과:</p>
+                    <div className="text-blue-900 whitespace-pre-line font-mono text-sm">
+                      {transcript}
+                    </div>
+                  </div>
+                )}
+                
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="의사와 환자의 대화 내용을 입력하세요..."
                 />
-                <button
-                  type="submit"
-                  disabled={analysisLoading}
-                  className="w-full mt-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {analysisLoading ? "분석 중..." : "대화 분석"}
-                </button>
+                
+                <div className="mt-4 flex space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setText(prev => prev + (prev ? ' ' : '') + transcript)}
+                    disabled={!transcript || analysisLoading}
+                    className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
+                  >
+                    음성 결과 추가
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={analysisLoading}
+                    className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {analysisLoading ? "분석 중..." : "대화 분석"}
+                  </button>
+                </div>
               </form>
             </div>
           </div>

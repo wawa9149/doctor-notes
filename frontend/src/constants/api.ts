@@ -7,4 +7,5 @@ export const API_ENDPOINTS = {
   ANALYZE: "/analyze",
   SAVE_EMR: "/emr/save",
   PATIENT_RECORDS: "/emr/records",
+  STT: "/stt",
 } as const;

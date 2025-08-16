@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from app.api import analyze, emr
+from app.api import analyze, emr, stt
 
 app = FastAPI()
 
@@ -33,3 +33,4 @@ def health_check():
 # 라우터 등록
 app.include_router(analyze.router, prefix="/analyze", tags=["analyze"])
 app.include_router(emr.router, prefix="/emr", tags=["emr"])
+app.include_router(stt.router, prefix="/stt", tags=["stt"])

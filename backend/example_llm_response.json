@@ -1,0 +1,68 @@
+{
+  "Patient": {
+    "name": {
+      "text": "김철수"
+    },
+    "birth_date": "1985-03-15",
+    "gender": "male"
+  },
+  "Encounter": {
+    "status": "finished",
+    "class": "AMB",
+    "type": "진료",
+    "period": {
+      "start": "2024-08-11T14:30:00.000Z"
+    },
+    "reason_text": "수면 장애 및 불안 증상으로 인한 상담"
+  },
+  "Condition": {
+    "clinical_status": "active",
+    "verification_status": "provisional",
+    "code": {
+      "text": "불면증"
+    },
+    "onset_datetime": "2024-07-01T00:00:00.000Z",
+    "severity": "moderate"
+  },
+  "Observation": [
+    {
+      "status": "final",
+      "code": {
+        "text": "수면 문제"
+      },
+      "value_string": "환자는 최근 2개월간 매일 밤 잠들기 어려움을 겪고 있으며, 평균 3-4시간만 수면을 취하고 있음. 잠들기까지 2-3시간이 소요되며, 중간에 자주 깨어남",
+      "effective_datetime": "2024-08-11T14:30:00.000Z"
+    },
+    {
+      "status": "final",
+      "code": {
+        "text": "불안 증상"
+      },
+      "value_string": "업무 스트레스로 인한 지속적인 불안감 호소. 심장이 빠르게 뛰는 증상과 호흡 곤란을 경험함",
+      "effective_datetime": "2024-08-11T14:30:00.000Z"
+    },
+    {
+      "status": "final",
+      "code": {
+        "text": "식욕 변화"
+      },
+      "value_string": "스트레스로 인해 식욕이 감소하여 하루에 1-2끼만 섭취하고 있음",
+      "effective_datetime": "2024-08-11T14:30:00.000Z"
+    }
+  ],
+  "MedicationStatement": [
+    {
+      "status": "active",
+      "medication": {
+        "text": "알프라졸람 0.5mg"
+      },
+      "dosage": {
+        "text": "하루 2회, 식후 30분 복용"
+      },
+      "effective_period": {
+        "start": "2024-07-15T00:00:00.000Z"
+      }
+    }
+  ]
+}
+
