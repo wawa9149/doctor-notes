@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { usePatients } from "@/hooks/usePatients";
 import { useAnalysis } from "@/hooks/useEMR";
-import { useSTT } from "@/hooks/useSTT";
+import { useSTT, type STTUtterance } from "@/hooks/useSTT";
 import { deletePatient } from "@/services/patientService";
 import type { PatientListItem } from "@/types/patient";
+
+type SpeakerRole = "의사" | "환자";
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,7 +21,9 @@ export default function HomePage() {
     null
   );
   const [isClient, setIsClient] = useState(false);
-
+  const [speakerRoles, setSpeakerRoles] = useState<Record<string, SpeakerRole>>({});
+  const [uniqueSpeakers, setUniqueSpeakers] = useState<string[]>([]);
+  
   // React 19의 use Hook 사용
   const patients = usePatients();
 
@@ -37,12 +41,49 @@ export default function HomePage() {
   const {
     isRecording,
     isProcessing,
-    transcript,
+    utterances, // transcript 대신 utterances 사용
     startRecording,
     stopRecording,
     resetTranscript,
     error: sttError,
   } = useSTT();
+
+  // STT 결과가 변경될 때마다 고유 화자 목록 업데이트
+  useEffect(() => {
+    if (utterances.length > 0) {
+      const speakers = new Set(utterances.map(u => u.speaker));
+      const newSpeakers = Array.from(speakers).filter(s => s !== "SYSTEM");
+      setUniqueSpeakers(newSpeakers);
+
+      // 기본 역할 할당 (기존 설정 유지)
+      setSpeakerRoles(prevRoles => {
+        const newRoles = { ...prevRoles };
+        newSpeakers.forEach((speaker, index) => {
+          if (!newRoles[speaker]) {
+            // 간단한 규칙: SPEAKER-00은 환자, 나머지는 의사로 기본 설정
+            newRoles[speaker] = speaker === "SPEAKER-00" ? "환자" : "의사";
+          }
+        });
+        return newRoles;
+      });
+    } else {
+      setUniqueSpeakers([]);
+    }
+  }, [utterances]);
+
+  const handleRoleChange = (speaker: string, role: SpeakerRole) => {
+    setSpeakerRoles(prev => ({ ...prev, [speaker]: role }));
+  };
+
+  // 역할을 반영하여 대화 내용 생성
+  const formattedConversation = useMemo(() => {
+    return utterances
+      .map(u => {
+        const role = speakerRoles[u.speaker] || u.speaker;
+        return `${role} - ${u.text}`;
+      })
+      .join('\n');
+  }, [utterances, speakerRoles]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,7 +223,7 @@ export default function HomePage() {
               )}
               
               <form onSubmit={handleSubmit}>
-                {/* 음성 녹음 컨트롤 */}
+                                {/* 음성 녹음 컨트롤 */}
                 <div className="mb-4 flex items-center space-x-4">
                   <button
                     type="button"
@@ -197,7 +238,7 @@ export default function HomePage() {
                     {isRecording ? '🔴 녹음 중지' : '🎤 음성 녹음'}
                   </button>
                   
-                  {transcript && (
+                  {utterances.length > 0 && (
                     <button
                       type="button"
                       onClick={resetTranscript}
@@ -212,12 +253,45 @@ export default function HomePage() {
                   )}
                 </div>
                 
+                {/* 화자 역할 설정 */}
+                {uniqueSpeakers.length > 0 && (
+                  <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3">화자 역할 설정</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {uniqueSpeakers.map((speaker) => (
+                        <div key={speaker} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                          <span className="font-mono text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            {speaker}
+                          </span>
+                          <select
+                            value={speakerRoles[speaker] || ""}
+                            onChange={(e) => handleRoleChange(speaker, e.target.value as SpeakerRole)}
+                            className="flex-1 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="의사">의사</option>
+                            <option value="환자">환자</option>
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* 음성 인식 결과 표시 */}
-                {transcript && (
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-blue-800 text-sm font-medium mb-2">음성 인식 결과:</p>
-                    <div className="text-blue-900 whitespace-pre-line font-mono text-sm">
-                      {transcript}
+                {utterances.length > 0 && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3 text-blue-800">음성 인식 결과</h3>
+                    <div className="space-y-2">
+                      {utterances.map((utterance, index) => {
+                        const role = speakerRoles[utterance.speaker] || utterance.speaker;
+                        return (
+                          <div key={index} className="p-2 bg-white rounded border border-blue-100">
+                            <span className="font-semibold text-blue-700">{role}</span>
+                            <span className="mx-2 text-gray-400">-</span>
+                            <span>{utterance.text}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -232,8 +306,8 @@ export default function HomePage() {
                 <div className="mt-4 flex space-x-4">
                   <button
                     type="button"
-                    onClick={() => setText(prev => prev + (prev ? ' ' : '') + transcript)}
-                    disabled={!transcript || analysisLoading}
+                    onClick={() => setText(prev => prev + (prev ? '\n' : '') + formattedConversation)}
+                    disabled={utterances.length === 0 || analysisLoading}
                     className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
                   >
                     음성 결과 추가

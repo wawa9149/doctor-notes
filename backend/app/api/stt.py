@@ -27,7 +27,7 @@ async def upload_audio_file(client: httpx.AsyncClient, file: UploadFile, api_key
 
 
 async def poll_for_stt_result(client: httpx.AsyncClient, task_id: str, api_key: str) -> Dict[str, Any] | None:
-    """작업 ID를 사용하여 STT 결과를 폴링합니다. 성공 시 결과를, 타임아웃 시 None을 반환합니다."""
+    """작업 ID를 사용하여 STT 결과를 폴링합니다. 최종 응답(성공/실패)을 반환하거나, 타임아웃 시 None을 반환합니다."""
     result_url = f"{settings.STT_API_BASE_URL}/speech2text/result/{task_id}"
     params = {"return_type": "dict"}
     headers = {"accept": "application/json", "Bearer": api_key}
@@ -41,30 +41,26 @@ async def poll_for_stt_result(client: httpx.AsyncClient, task_id: str, api_key: 
             result_data = result_response.json()
             api_code = result_data.get("code")
 
-            if api_code == 700: # 성공
-                logger.info("결과 조회 성공 (API 코드 700)")
-                return result_data
-            
-            elif api_code == 703: # 처리 중
+            if api_code == 703:  # 처리 중
                 logger.info("아직 처리 중 (API 코드 703)...")
                 await asyncio.sleep(settings.STT_POLL_INTERVAL)
                 continue
             
-            else: # 알 수 없는 코드
-                logger.error(f"알 수 없는 API 코드: {api_code}. 응답: {result_data}")
-                raise HTTPException(status_code=500, detail="알 수 없는 STT API 응답입니다.")
+            # 성공(700) 또는 실패(501 등) 시, 루프를 중단하고 결과 반환
+            logger.info(f"폴링 종료 (API 코드 {api_code})")
+            return result_data
 
-        elif result_response.status_code == 202: # 202도 처리 중으로 간주
+        elif result_response.status_code == 202:  # 202도 처리 중으로 간주
             logger.info("아직 처리 중 (HTTP 상태 코드 202)...")
             await asyncio.sleep(settings.STT_POLL_INTERVAL)
             continue
         
-        else: # 그 외 HTTP 오류
+        else:  # 그 외 HTTP 오류
             logger.error(f"결과 조회 오류: {result_response.status_code} - {result_response.text}")
             raise HTTPException(status_code=result_response.status_code, detail="결과 조회에 실패했습니다.")
 
     logger.warning("결과 조회 타임아웃")
-    return None # 타임아웃 시 None 반환
+    return None  # 타임아웃 시 None 반환
 
 
 def extract_utterances(result_data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -137,11 +133,21 @@ async def speech_to_text(file: UploadFile = File(description="음성 파일")):
                 # 타임아웃 처리
                 return {"utterances": [{"text": "음성 인식 처리 시간이 초과되었습니다."}]}
 
-            # 3. 결과 추출
-            extracted_utterances = extract_utterances(result_data)
-            logger.info(f"추출된 utterances: {extracted_utterances}")
+            api_code = result_data.get("code")
 
-            return {"utterances": extracted_utterances}
+            if api_code == 700: # 성공
+                # 3. 결과 추출
+                extracted_utterances = extract_utterances(result_data)
+                logger.info(f"추출된 utterances: {extracted_utterances}")
+                return {"utterances": extracted_utterances}
+            
+            elif api_code == 501: # 녹음 내용 없음
+                logger.warning("API에서 501 오류 반환: 녹음된 내용 없음")
+                return {"utterances": [{"speaker": "SYSTEM", "text": "음성 입력이 감지되지 않았습니다."}]}
+            
+            else: # 그 외 실패
+                logger.error(f"STT 처리 실패 (API 코드 {api_code}): {result_data.get('message')}")
+                raise HTTPException(status_code=500, detail="음성 인식 처리에 실패했습니다.")
 
         except httpx.HTTPStatusError as e:
             # httpx에서 발생한 HTTP 오류 처리

@@ -1,10 +1,17 @@
 import { useState, useRef, useCallback } from 'react';
 import { API_ENDPOINTS } from '../constants/api';
 
+interface STTUtterance {
+  speaker: string;
+  start: number;
+  end: number;
+  text: string;
+}
+
 interface UseSTTReturn {
   isRecording: boolean;
   isProcessing: boolean;
-  transcript: string;
+  utterances: STTUtterance[];
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   resetTranscript: () => void;
@@ -14,7 +21,7 @@ interface UseSTTReturn {
 export const useSTT = (): UseSTTReturn => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transcript, setTranscript] = useState('');
+  const [utterances, setUtterances] = useState<STTUtterance[]>([]);
   const [error, setError] = useState<string | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -62,7 +69,7 @@ export const useSTT = (): UseSTTReturn => {
         try {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           const text = await transcribeAudio(audioBlob);
-          setTranscript(prev => prev + (prev ? ' ' : '') + text);
+          setUtterances(text);
         } catch (err) {
           setError('음성을 텍스트로 변환하는 중 오류가 발생했습니다.');
           console.error('STT Error:', err);
@@ -88,7 +95,7 @@ export const useSTT = (): UseSTTReturn => {
   }, [isRecording]);
 
   const resetTranscript = useCallback(() => {
-    setTranscript('');
+    setUtterances([]);
     setError(null);
   }, []);
 
@@ -158,7 +165,7 @@ export const useSTT = (): UseSTTReturn => {
     return new Blob([arrayBuffer], { type: 'audio/wav' });
   };
 
-  const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
+  const transcribeAudio = async (audioBlob: Blob): Promise<STTUtterance[]> => {
     try {
       // WebM을 WAV로 변환
       let wavBlob: Blob;
@@ -187,15 +194,16 @@ export const useSTT = (): UseSTTReturn => {
       
       const result = await response.json();
       
-      // utterances 배열을 화자별 텍스트로 변환
       if (result.utterances && Array.isArray(result.utterances)) {
-        const formattedText = result.utterances
-          .map((utterance: any) => `${utterance.speaker} - ${utterance.text}`)
-          .join('\n');
-        return formattedText;
+        return result.utterances;
       }
       
-      return result.text || '';
+      // text 필드만 있는 경우, 단일 utterance로 변환
+      if (result.text) {
+        return [{ speaker: "SYSTEM", start: 0, end: 0, text: result.text }];
+      }
+      
+      return [];
       
     } catch (error) {
       console.error('STT API 호출 오류:', error);
@@ -206,7 +214,7 @@ export const useSTT = (): UseSTTReturn => {
   return {
     isRecording,
     isProcessing,
-    transcript,
+    utterances,
     startRecording,
     stopRecording,
     resetTranscript,
