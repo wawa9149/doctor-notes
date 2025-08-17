@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { API_ENDPOINTS } from '../constants/api';
 
-interface STTUtterance {
+export interface STTUtterance {
   speaker: string;
   start: number;
   end: number;

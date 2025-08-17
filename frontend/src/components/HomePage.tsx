@@ -8,7 +8,13 @@ import { useSTT, type STTUtterance } from "@/hooks/useSTT";
 import { deletePatient } from "@/services/patientService";
 import type { PatientListItem } from "@/types/patient";
 
-type SpeakerRole = "의사" | "환자";
+type SpeakerRole = "환자" | "의사" | "기타";
+
+interface MergedContent {
+  conversation: string;
+  doctorNote: string;
+  summary: string[];
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -17,6 +23,9 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] =
     useState<PatientListItem | null>(null);
+  const [doctorNote, setDoctorNote] = useState("");
+  const [isProcessingMerge, setIsProcessingMerge] = useState(false);
+  const [mergedContent, setMergedContent] = useState<MergedContent | null>(null);
   const [deletingPatientId, setDeletingPatientId] = useState<number | null>(
     null
   );
@@ -73,6 +82,39 @@ export default function HomePage() {
 
   const handleRoleChange = (speaker: string, role: SpeakerRole) => {
     setSpeakerRoles(prev => ({ ...prev, [speaker]: role }));
+  };
+
+  // 임시 RAG 처리 함수
+  const handleMergeContent = async () => {
+    setIsProcessingMerge(true);
+    try {
+      // 음성 인식 결과를 문자열로 변환
+      const conversationText = utterances
+        .map(u => `${speakerRoles[u.speaker] || u.speaker}: ${u.text}`)
+        .join('\n');
+
+      // 실제로는 여기서 RAG 백엔드 API를 호출해야 함
+      // 임시로 3초 대기 후 더미 데이터 반환
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // 더미 데이터로 결과 생성
+      setMergedContent({
+        conversation: conversationText,
+        doctorNote: doctorNote,
+        summary: [
+          "주요 증상: 두통, 어지러움",
+          "진찰 소견: 혈압 정상, 신경학적 검사 정상",
+          "처방: 진통제 처방, 휴식 권고",
+          "다음 진료: 2주 후 재진료"
+        ]
+      });
+      
+    } catch (error) {
+      console.error('RAG 처리 중 오류:', error);
+      alert('내용을 처리하는 중 오류가 발생했습니다.');
+    } finally {
+      setIsProcessingMerge(false);
+    }
   };
 
   // 역할을 반영하여 대화 내용 생성
@@ -189,138 +231,193 @@ export default function HomePage() {
 
         {activeTab === "new" ? (
           // 새로운 진료 시작 섹션
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">환자 선택</h2>
-              <select
-                className="w-full p-2 border border-gray-300 rounded-md"
-                value={isClient ? (selectedPatient?.id || "") : ""}
-                onChange={(e) => {
-                  const patient = patients.find(
-                    (p) => p.id === Number(e.target.value)
-                  );
-                  setSelectedPatient(patient || null);
-                }}
-              >
-                <option value="">새로운 환자</option>
-                {isClient && patients.map((patient) => (
-                  <option key={patient.id} value={patient.id}>
-                    {patient.name.text} ({patient.identifier}) -{" "}
-                    {new Date(patient.birth_date).toLocaleDateString()}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="flex gap-6">
+            {/* 왼쪽 컬럼: 입력 영역 */}
+            <div className="w-[600px]">
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-4">환자 선택</h2>
+                <select
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={isClient ? (selectedPatient?.id || "") : ""}
+                  onChange={(e) => {
+                    const patient = patients.find(
+                      (p) => p.id === Number(e.target.value)
+                    );
+                    setSelectedPatient(patient || null);
+                  }}
+                >
+                  <option value="">새로운 환자</option>
+                  {isClient && patients.map((patient) => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.name.text} ({patient.identifier}) -{" "}
+                      {new Date(patient.birth_date).toLocaleDateString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">진료 대화 입력</h2>
-              
-              {/* STT 에러 표시 */}
-              {sttError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-600 text-sm">{sttError}</p>
-                </div>
-              )}
-              
-              <form onSubmit={handleSubmit}>
-                                {/* 음성 녹음 컨트롤 */}
-                <div className="mb-4 flex items-center space-x-4">
-                  <button
-                    type="button"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    disabled={isProcessing}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      isRecording
-                        ? 'bg-red-500 text-white hover:bg-red-600'
-                        : 'bg-green-500 text-white hover:bg-green-600'
-                    } disabled:opacity-50`}
-                  >
-                    {isRecording ? '🔴 녹음 중지' : '🎤 음성 녹음'}
-                  </button>
-                  
-                  {utterances.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">진료 대화 입력</h2>
+                
+                {/* STT 에러 표시 */}
+                {sttError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600 text-sm">{sttError}</p>
+                  </div>
+                )}
+                
+                <form onSubmit={handleSubmit}>
+                  {/* 음성 녹음 컨트롤 */}
+                  <div className="mb-4 flex items-center space-x-4">
                     <button
                       type="button"
-                      onClick={resetTranscript}
-                      className="px-3 py-2 text-gray-600 hover:text-gray-800"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={isProcessing}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        isRecording
+                          ? 'bg-red-500 text-white hover:bg-red-600'
+                          : 'bg-green-500 text-white hover:bg-green-600'
+                      } disabled:opacity-50`}
                     >
-                      🗑️ 초기화
+                      {isRecording ? '🔴 녹음 중지' : '🎤 음성 녹음'}
                     </button>
-                  )}
+                    
+                    {utterances.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={resetTranscript}
+                        className="px-3 py-2 text-gray-600 hover:text-gray-800"
+                      >
+                        🗑️ 초기화
+                      </button>
+                    )}
+                    
+                    {isProcessing && (
+                      <span className="text-blue-600 text-sm">음성 처리 중...</span>
+                    )}
+                  </div>
                   
-                  {isProcessing && (
-                    <span className="text-blue-600 text-sm">음성 처리 중...</span>
-                  )}
-                </div>
-                
-                {/* 화자 역할 설정 */}
-                {uniqueSpeakers.length > 0 && (
-                  <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3">화자 역할 설정</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {uniqueSpeakers.map((speaker) => (
-                        <div key={speaker} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
-                          <span className="font-mono text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                            {speaker}
-                          </span>
-                          <select
-                            value={speakerRoles[speaker] || ""}
-                            onChange={(e) => handleRoleChange(speaker, e.target.value as SpeakerRole)}
-                            className="flex-1 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            <option value="의사">의사</option>
-                            <option value="환자">환자</option>
-                          </select>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 음성 인식 결과 표시 */}
-                {utterances.length > 0 && (
-                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3 text-blue-800">음성 인식 결과</h3>
-                    <div className="space-y-2">
-                      {utterances.map((utterance, index) => {
-                        const role = speakerRoles[utterance.speaker] || utterance.speaker;
-                        return (
-                          <div key={index} className="p-2 bg-white rounded border border-blue-100">
-                            <span className="font-semibold text-blue-700">{role}</span>
-                            <span className="mx-2 text-gray-400">-</span>
-                            <span>{utterance.text}</span>
+                  {/* 화자 역할 설정 */}
+                  {uniqueSpeakers.length > 0 && (
+                    <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <h3 className="text-lg font-semibold mb-3">화자 역할 설정</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {uniqueSpeakers.map((speaker) => (
+                          <div key={speaker} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                            <span className="font-mono text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                              {speaker}
+                            </span>
+                            <select
+                              value={speakerRoles[speaker] || ""}
+                              onChange={(e) => handleRoleChange(speaker, e.target.value as SpeakerRole)}
+                              className="flex-1 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              <option value="의사">의사</option>
+                              <option value="환자">환자</option>
+                            </select>
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
                     </div>
+                  )}
+
+                  {/* 음성 인식 결과 표시 */}
+                  {utterances.length > 0 && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h3 className="text-lg font-semibold mb-3 text-blue-800">음성 인식 결과</h3>
+                      <div className="space-y-2">
+                        {utterances.map((utterance, index) => {
+                          const role = speakerRoles[utterance.speaker] || utterance.speaker;
+                          return (
+                            <div key={index} className="p-2 bg-white rounded border border-blue-100">
+                              <span className="font-semibold text-blue-700">{role}</span>
+                              <span className="mx-2 text-gray-400">-</span>
+                              <span>{utterance.text}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 의사 메모 입력 */}
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold mb-3">의사 메모</h3>
+                    <textarea
+                      value={doctorNote}
+                      onChange={(e) => setDoctorNote(e.target.value)}
+                      className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="의사 메모를 입력하세요..."
+                    />
+                  </div>
+
+                  {/* 버튼 영역 */}
+                  <div className="flex space-x-4">
+                    <button
+                      type="button"
+                      onClick={handleMergeContent}
+                      disabled={!doctorNote.trim() || isProcessingMerge}
+                      className="flex-1 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {isProcessingMerge ? "처리 중..." : "합치기"}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={analysisLoading}
+                      className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {analysisLoading ? "분석 중..." : "대화 분석"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* 오른쪽 컬럼: 합친 결과 표시 */}
+            <div className="flex-1 bg-white rounded-xl shadow-lg p-6 h-fit">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">분석 결과</h2>
+                {isProcessingMerge && (
+                  <div className="flex items-center text-blue-600">
+                    <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    분석 중...
                   </div>
                 )}
-                
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="의사와 환자의 대화 내용을 입력하세요..."
-                />
-                
-                <div className="mt-4 flex space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setText(prev => prev + (prev ? '\n' : '') + formattedConversation)}
-                    disabled={utterances.length === 0 || analysisLoading}
-                    className="flex-1 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
-                  >
-                    음성 결과 추가
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={analysisLoading}
-                    className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {analysisLoading ? "분석 중..." : "대화 분석"}
-                  </button>
+              </div>
+              {mergedContent ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">음성 인식 결과</h3>
+                    <div className="bg-gray-50 p-3 rounded-lg whitespace-pre-line">
+                      {mergedContent.conversation}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">의사 메모</h3>
+                    <div className="bg-gray-50 p-3 rounded-lg whitespace-pre-line">
+                      {mergedContent.doctorNote}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">요약</h3>
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <ul className="list-disc list-inside space-y-1">
+                        {mergedContent.summary.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
-              </form>
+              ) : (
+                <div className="h-[400px] flex items-center justify-center text-gray-500">
+                  음성 인식 결과와 의사 메모를 입력한 후<br />
+                  합치기 버튼을 클릭하면 분석 결과가 표시됩니다.
+                </div>
+              )}
             </div>
           </div>
         ) : (
