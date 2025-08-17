@@ -187,55 +187,78 @@ export default function HomePage() {
   );
 
   return (
-    <div className="w-screen min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8">🏥 Doctor Notes</h1>
+    <div className="w-screen min-h-screen bg-gray-50">
+      {/* 헤더 */}
+      <div className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between py-4">
+            <h1 className="text-2xl font-bold">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                Doctor Notes
+              </span>
+            </h1>
 
+            {/* 탭 네비게이션을 헤더로 이동 */}
+            <div className="flex items-center">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm p-1.5 border border-gray-100">
+                <button
+                  onClick={() => setActiveTab("new")}
+                  className={`px-6 py-2 rounded-lg transition-all duration-200 font-medium ${
+                    activeTab === "new"
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  ✨ 새로운 진료
+                </button>
+                <button
+                  onClick={() => {
+                    console.log("환자 기록 조회 버튼 클릭됨");
+                    setActiveTab("records");
+                  }}
+                  className={`px-6 py-2 rounded-lg transition-all duration-200 font-medium ${
+                    activeTab === "records"
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  📋 기록 조회
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-8">
         {/* 에러 처리 */}
         {analysisError && (
-          <div className="max-w-3xl mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600">
-              분석 중 오류가 발생했습니다: {analysisError.message}
-            </p>
+          <div className="max-w-3xl mx-auto mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
+            <div className="flex items-center space-x-3">
+              <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-red-600">
+                분석 중 오류가 발생했습니다: {analysisError.message}
+              </p>
+            </div>
           </div>
         )}
 
-        {/* 탭 네비게이션 */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-1">
-            <button
-              onClick={() => setActiveTab("new")}
-              className={`px-6 py-2 rounded-md transition-colors ${
-                activeTab === "new"
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              새로운 진료 시작
-            </button>
-            <button
-              onClick={() => {
-                console.log("환자 기록 조회 버튼 클릭됨");
-                setActiveTab("records");
-              }}
-              className={`px-6 py-2 rounded-md transition-colors ${
-                activeTab === "records"
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              환자 기록 조회
-            </button>
-          </div>
-        </div>
-
         {activeTab === "new" ? (
           // 새로운 진료 시작 섹션
-          <div className="flex gap-6">
+          <div className="flex flex-col lg:flex-row gap-6">
             {/* 왼쪽 컬럼: 입력 영역 */}
-            <div className="w-[600px]">
-              <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4">환자 선택</h2>
+            <div className="w-full lg:w-[600px]">
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-blue-500 transition-all hover:shadow-xl">
+                <div className="flex items-center mb-4">
+                  <span className="text-blue-500 mr-3">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </span>
+                  <h2 className="text-xl font-semibold">환자 선택</h2>
+                </div>
                 <select
                   className="w-full p-2 border border-gray-300 rounded-md"
                   value={isClient ? (selectedPatient?.id || "") : ""}
@@ -256,45 +279,94 @@ export default function HomePage() {
                 </select>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">진료 대화 입력</h2>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-indigo-500 transition-all hover:shadow-xl">
+                <div className="flex items-center mb-6">
+                  <span className="text-indigo-500 mr-3">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  </span>
+                  <h2 className="text-xl font-semibold">진료 대화 입력</h2>
+                </div>
                 
                 {/* STT 에러 표시 */}
                 {sttError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg flex items-center space-x-3">
+                    <svg className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     <p className="text-red-600 text-sm">{sttError}</p>
                   </div>
                 )}
                 
                 <form onSubmit={handleSubmit}>
                   {/* 음성 녹음 컨트롤 */}
-                  <div className="mb-4 flex items-center space-x-4">
+                  <div className="mb-6 flex flex-wrap items-center gap-3">
                     <button
                       type="button"
                       onClick={isRecording ? stopRecording : startRecording}
                       disabled={isProcessing}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      className={`relative px-5 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
                         isRecording
-                          ? 'bg-red-500 text-white hover:bg-red-600'
-                          : 'bg-green-500 text-white hover:bg-green-600'
-                      } disabled:opacity-50`}
+                          ? 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100'
+                          : 'bg-blue-50 text-blue-600 border-2 border-blue-200 hover:bg-blue-100'
+                      } disabled:opacity-50 disabled:hover:bg-transparent`}
                     >
-                      {isRecording ? '🔴 녹음 중지' : '🎤 음성 녹음'}
+                      {isRecording ? (
+                        <>
+                          <span className="relative flex h-3 w-3 mr-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                          </span>
+                          <span>녹음 중지</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                          </svg>
+                          <span>음성 녹음</span>
+                        </>
+                      )}
                     </button>
                     
                     {utterances.length > 0 && (
                       <button
                         type="button"
                         onClick={resetTranscript}
-                        className="px-3 py-2 text-gray-600 hover:text-gray-800"
+                        className="px-4 py-2.5 text-gray-600 bg-gray-50 border-2 border-gray-200 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center space-x-2"
                       >
-                        🗑️ 초기화
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>초기화</span>
                       </button>
                     )}
                     
                     {isProcessing && (
-                      <span className="text-blue-600 text-sm">음성 처리 중...</span>
+                      <div className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg border-2 border-blue-100 flex items-center space-x-2">
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>음성 처리 중...</span>
+                      </div>
                     )}
+                  </div>
+
+                  {/* 사용자 가이드 */}
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="flex items-center space-x-2 text-blue-700 mb-2">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="font-medium">사용 방법</span>
+                    </div>
+                    <p className="text-sm text-blue-600">
+                      1. 음성 녹음 버튼을 클릭하여 대화를 녹음하세요.<br />
+                      2. 녹음이 완료되면 의사 메모를 입력하세요.<br />
+                      3. 합치기 버튼을 클릭하여 분석을 시작하세요.
+                    </p>
                   </div>
                   
                   {/* 화자 역할 설정 */}
@@ -323,16 +395,46 @@ export default function HomePage() {
 
                   {/* 음성 인식 결과 표시 */}
                   {utterances.length > 0 && (
-                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h3 className="text-lg font-semibold mb-3 text-blue-800">음성 인식 결과</h3>
-                      <div className="space-y-2">
+                    <div className="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-xl shadow-sm">
+                      <div className="flex items-center space-x-3 mb-4">
+                        <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        <h3 className="text-lg font-semibold text-blue-900">음성 인식 결과</h3>
+                      </div>
+                      <div className="space-y-3">
                         {utterances.map((utterance, index) => {
                           const role = speakerRoles[utterance.speaker] || utterance.speaker;
+                          const isDoctor = role === "의사";
                           return (
-                            <div key={index} className="p-2 bg-white rounded border border-blue-100">
-                              <span className="font-semibold text-blue-700">{role}</span>
-                              <span className="mx-2 text-gray-400">-</span>
-                              <span>{utterance.text}</span>
+                            <div 
+                              key={index} 
+                              className={`flex items-start space-x-3 p-3 rounded-lg ${
+                                isDoctor 
+                                  ? 'bg-blue-100 bg-opacity-50' 
+                                  : 'bg-white border border-blue-100'
+                              }`}
+                            >
+                              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                                isDoctor ? 'bg-blue-500' : 'bg-green-500'
+                              }`}>
+                                <span className="text-white text-sm">
+                                  {isDoctor ? '의' : '환'}
+                                </span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center mb-1">
+                                  <span className={`font-medium ${
+                                    isDoctor ? 'text-blue-700' : 'text-green-700'
+                                  }`}>
+                                    {role}
+                                  </span>
+                                  <span className="text-gray-400 text-sm ml-2">
+                                    #{index + 1}
+                                  </span>
+                                </div>
+                                <p className="text-gray-700">{utterance.text}</p>
+                              </div>
                             </div>
                           );
                         })}
@@ -341,14 +443,24 @@ export default function HomePage() {
                   )}
 
                   {/* 의사 메모 입력 */}
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold mb-3">의사 메모</h3>
-                    <textarea
-                      value={doctorNote}
-                      onChange={(e) => setDoctorNote(e.target.value)}
-                      className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="의사 메모를 입력하세요..."
-                    />
+                  <div className="mb-6">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <h3 className="text-lg font-semibold text-gray-900">의사 메모</h3>
+                    </div>
+                    <div className="relative">
+                      <textarea
+                        value={doctorNote}
+                        onChange={(e) => setDoctorNote(e.target.value)}
+                        className="w-full h-40 p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        placeholder="진료 내용에 대한 메모를 입력하세요..."
+                      />
+                      <div className="absolute bottom-4 right-4 text-gray-400 text-sm">
+                        {doctorNote.length} 자
+                      </div>
+                    </div>
                   </div>
 
                   {/* 버튼 영역 */}
@@ -357,16 +469,46 @@ export default function HomePage() {
                       type="button"
                       onClick={handleMergeContent}
                       disabled={!doctorNote.trim() || isProcessingMerge}
-                      className="flex-1 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                      className="flex-1 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none transition-all duration-200 flex items-center justify-center space-x-2"
                     >
-                      {isProcessingMerge ? "처리 중..." : "합치기"}
+                      {isProcessingMerge ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          <span>처리 중...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                          </svg>
+                          <span>합치기</span>
+                        </>
+                      )}
                     </button>
                     <button
                       type="submit"
                       disabled={analysisLoading}
-                      className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none transition-all duration-200 flex items-center justify-center space-x-2"
                     >
-                      {analysisLoading ? "분석 중..." : "대화 분석"}
+                      {analysisLoading ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          <span>분석 중...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                          </svg>
+                          <span>대화 분석</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
@@ -374,48 +516,82 @@ export default function HomePage() {
             </div>
 
             {/* 오른쪽 컬럼: 합친 결과 표시 */}
-            <div className="flex-1 bg-white rounded-xl shadow-lg p-6 h-fit">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">분석 결과</h2>
+            <div className="flex-1 bg-white rounded-xl shadow-lg p-6 h-fit border-l-4 border-blue-500 transition-all hover:shadow-xl">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center space-x-3">
+                  <span className="text-blue-500">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                  </span>
+                  <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    분석 결과
+                  </h2>
+                </div>
                 {isProcessingMerge && (
-                  <div className="flex items-center text-blue-600">
-                    <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                  <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-4 py-2 rounded-full">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    분석 중...
+                    <span>분석 중...</span>
                   </div>
                 )}
               </div>
               {mergedContent ? (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">음성 인식 결과</h3>
-                    <div className="bg-gray-50 p-3 rounded-lg whitespace-pre-line">
+                <div className="space-y-8">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                      <h3 className="font-semibold text-blue-900">음성 인식 결과</h3>
+                    </div>
+                    <div className="bg-white/50 p-4 rounded-lg whitespace-pre-line border border-blue-100">
                       {mergedContent.conversation}
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">의사 메모</h3>
-                    <div className="bg-gray-50 p-3 rounded-lg whitespace-pre-line">
+                  <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <h3 className="font-semibold text-indigo-900">의사 메모</h3>
+                    </div>
+                    <div className="bg-white/50 p-4 rounded-lg whitespace-pre-line border border-indigo-100">
                       {mergedContent.doctorNote}
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">요약</h3>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <ul className="list-disc list-inside space-y-1">
+                  <div className="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl p-6 border border-green-100">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                      <h3 className="font-semibold text-green-900">요약</h3>
+                    </div>
+                    <div className="bg-white/50 p-4 rounded-lg border border-green-100">
+                      <ul className="space-y-2">
                         {mergedContent.summary.map((item, index) => (
-                          <li key={index}>{item}</li>
+                          <li key={index} className="flex items-start space-x-3">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-sm">
+                              {index + 1}
+                            </span>
+                            <span className="flex-1 text-gray-700">{item}</span>
+                          </li>
                         ))}
                       </ul>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="h-[400px] flex items-center justify-center text-gray-500">
-                  음성 인식 결과와 의사 메모를 입력한 후<br />
-                  합치기 버튼을 클릭하면 분석 결과가 표시됩니다.
+                <div className="h-[400px] flex flex-col items-center justify-center text-gray-500 bg-gray-50/50 rounded-xl border-2 border-dashed border-gray-200">
+                  <svg className="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-center">
+                    음성 인식 결과와 의사 메모를 입력한 후<br />
+                    합치기 버튼을 클릭하면 분석 결과가 표시됩니다.
+                  </p>
                 </div>
               )}
             </div>
