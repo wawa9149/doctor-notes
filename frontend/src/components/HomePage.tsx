@@ -15,13 +15,13 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="w-screen min-h-screen bg-gray-50">
+    <div className="w-screen min-h-screen">
       {/* 헤더 */}
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between py-4">
             <h1 className="text-2xl font-bold">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-teal-500">
                 Doctor Notes
               </span>
             </h1>
@@ -33,7 +33,7 @@ export default function HomePage() {
                   onClick={() => setActiveTab("new")}
                   className={`px-6 py-2 rounded-lg transition-all duration-200 font-medium ${
                     activeTab === "new"
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
+                      ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-md"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
@@ -43,7 +43,7 @@ export default function HomePage() {
                   onClick={() => setActiveTab("records")}
                   className={`px-6 py-2 rounded-lg transition-all duration-200 font-medium ${
                     activeTab === "records"
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
+                      ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-md"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >

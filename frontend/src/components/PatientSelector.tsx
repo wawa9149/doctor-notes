@@ -16,9 +16,9 @@ export default function PatientSelector({
   isClient,
 }: PatientSelectorProps) {
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 transition-all hover:shadow-xl">
+    <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-cyan-500 transition-all hover:shadow-xl">
       <div className="flex items-center mb-4">
-        <span className="text-blue-500 mr-3">
+        <span className="text-cyan-500 mr-3">
           <svg
             className="h-6 w-6"
             fill="none"

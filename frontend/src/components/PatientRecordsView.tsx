@@ -22,7 +22,7 @@ export default function PatientRecordsView() {
             placeholder="환자 이름 또는 차트번호로 검색"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full p-4 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full p-4 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
           />
           <span className="absolute right-3 top-4 text-gray-400">🔍</span>
         </div>
@@ -45,7 +45,7 @@ export default function PatientRecordsView() {
               <div className="flex space-x-2">
                 <button
                   onClick={() => router.push(`/records/${patient.id}`)}
-                  className="px-3 py-1 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
+                  className="px-3 py-1 bg-teal-100 text-teal-600 rounded-md hover:bg-teal-200"
                 >
                   기록 보기
                 </button>

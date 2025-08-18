@@ -16,10 +16,10 @@ export default function AnalysisResult({
   isProcessingMerge,
 }: AnalysisResultProps) {
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 h-fit border-l-4 border-blue-500 transition-all hover:shadow-xl">
+    <div className="bg-white rounded-xl shadow-lg p-6 h-fit border-l-4 border-teal-500 transition-all hover:shadow-xl">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-3">
-          <span className="text-blue-500">
+          <span className="text-teal-500">
             <svg
               className="h-6 w-6"
               fill="none"
@@ -34,12 +34,12 @@ export default function AnalysisResult({
               />
             </svg>
           </span>
-          <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h2 className="text-xl font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
             분석 결과
           </h2>
         </div>
         {isProcessingMerge && (
-          <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-4 py-2 rounded-full">
+          <div className="flex items-center space-x-2 text-teal-600 bg-teal-50 px-4 py-2 rounded-full">
             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
               <circle
                 className="opacity-25"
@@ -62,40 +62,40 @@ export default function AnalysisResult({
       </div>
       {mergedContent ? (
         <div className="space-y-8">
-          <div className="rounded-xl p-6 border border-blue-100">
+          <div className="rounded-xl p-6 border border-cyan-100">
             <div className="flex items-center space-x-3 mb-4">
-              <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
-              <h3 className="font-semibold text-blue-900">음성 인식 결과</h3>
+              <h3 className="font-semibold text-cyan-900">음성 인식 결과</h3>
             </div>
-            <div className="bg-white/50 p-4 rounded-lg whitespace-pre-line border border-blue-100">
+            <div className="bg-white/50 p-4 rounded-lg whitespace-pre-line border border-cyan-100">
               {mergedContent.conversation}
             </div>
           </div>
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
+          <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border border-teal-100">
             <div className="flex items-center space-x-3 mb-4">
-              <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              <h3 className="font-semibold text-indigo-900">의사 메모</h3>
+              <h3 className="font-semibold text-teal-900">의사 메모</h3>
             </div>
-            <div className="bg-white/50 p-4 rounded-lg whitespace-pre-line border border-indigo-100">
+            <div className="bg-white/50 p-4 rounded-lg whitespace-pre-line border border-teal-100">
               {mergedContent.doctorNote}
             </div>
           </div>
-          <div className="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl p-6 border border-green-100">
+          <div className="bg-gradient-to-br from-cyan-50 to-teal-50 rounded-xl p-6 border border-cyan-100">
             <div className="flex items-center space-x-3 mb-4">
-              <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
-              <h3 className="font-semibold text-green-900">요약</h3>
+              <h3 className="font-semibold text-cyan-900">요약</h3>
             </div>
-            <div className="bg-white/50 p-4 rounded-lg border border-green-100">
+            <div className="bg-white/50 p-4 rounded-lg border border-cyan-100">
               <ul className="space-y-2">
                 {mergedContent.summary.map((item, index) => (
                   <li key={index} className="flex items-start space-x-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-sm">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-cyan-500 flex items-center justify-center text-white text-sm">
                       {index + 1}
                     </span>
                     <span className="flex-1 text-gray-700">{item}</span>
