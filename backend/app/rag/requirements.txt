@@ -14,8 +14,8 @@ langchain-chroma>=0.2.5
 chromadb>=1.0.9
 
 # Embeddings
-sentence-transformers>=3.2.1
-transformers>=4.45.2
+# sentence-transformers는 langchain-huggingface가 필요시 자동 설치됨
+# transformers>=4.45.2 도 langchain-huggingface 의존성으로 설치됨
 
 # LLM
 openai>=1.68.2
