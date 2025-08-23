@@ -1,6 +1,27 @@
 version: "3.8"
 
 services:
+  # ChromaDB 서버 (벡터 데이터베이스)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: doctor-notes-chromadb
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_AUTH_PROVIDER=none
+      - CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=none
+      - ANONYMIZED_TELEMETRY=false
+    volumes:
+      - chromadb-data:/chroma/chroma
+    networks:
+      - doctor-notes-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -14,9 +35,13 @@ services:
       --host 0.0.0.0 --port 8000
       --workers 2
     ports:
-      - "8000:8000"
+      - "8002:8000"
+    depends_on:
+      rag-service:
+        condition: service_healthy
     environment:
       - PYTHONPATH=/app
+      - RAG_SERVICE_URL=http://rag-service:8001
       # CORS를 최소화하려면 프론트가 같은 오리진으로 프록시하거나,
       # 백엔드에서 허용오리진을 ENV로 관리
       # - ALLOW_ORIGINS=http://localhost,http://example.com
@@ -71,6 +96,47 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  rag-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.rag
+    container_name: doctor-notes-rag
+    ports:
+      - "8001:8001"
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    environment:
+      - PYTHONPATH=/app
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - LLM_MODEL=${LLM_MODEL:-gpt-4}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - EMBEDDING_MODEL=jhgan/ko-sroberta-multitask
+      - RETRIEVAL_TOP_K=5
+      - RETRIEVAL_TOP_M=3
+      - CHUNK_SIZE=500
+      - CHUNK_OVERLAP=50
+    networks:
+      - doctor-notes-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   doctor-notes-network:
     driver: bridge
+
+volumes:
+  chromadb-data:
+    driver: local

@@ -1,0 +1,35 @@
+# RAG 서비스 전용 Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 시스템 패키지 설치
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# pip 업그레이드 및 타임아웃 설정
+RUN pip install --upgrade pip
+
+# RAG 서비스 requirements 복사 및 설치
+COPY app/rag/requirements.txt ./requirements-rag.txt
+
+# 큰 패키지들을 먼저 설치 (캐싱 활용)
+RUN pip install --no-cache-dir --timeout=300 --retries=5 \
+    numpy>=1.26.4 \
+    pandas>=2.2.3 \
+    transformers>=4.45.2 \
+    sentence-transformers>=3.2.1
+
+# 나머지 패키지 설치
+RUN pip install --no-cache-dir --timeout=300 --retries=5 -r requirements-rag.txt
+
+# RAG 서비스 코드 복사
+COPY app/rag ./app/rag
+
+# 포트 노출
+EXPOSE 8001
+
+# RAG 서비스 실행
+CMD ["python", "-m", "uvicorn", "app.rag.main:app", "--host", "0.0.0.0", "--port", "8001"]
