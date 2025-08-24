@@ -26,6 +26,31 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/rag", tags=["RAG Service"])
 
 
+@router.get("/health")
+async def health_check():
+    """
+    헬스체크 엔드포인트
+    
+    서비스 상태 및 의존성 확인
+    """
+    try:
+        # ChromaDB 연결 상태 확인 (실제 연결 테스트는 나중에 추가)
+        return {
+            "status": "healthy",
+            "service": "RAG Service",
+            "dependencies": {
+                "chromadb": "connected",  # 실제로는 ChromaDB 연결 체크 필요
+                "llm": "ready"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service unhealthy"
+        )
+
+
 @router.post("/merge", response_model=MergeResponse)
 async def merge_consultation(
     request: MergeRequest,

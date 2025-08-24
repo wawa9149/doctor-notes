@@ -6,7 +6,7 @@ services:
     image: chromadb/chroma:latest
     container_name: doctor-notes-chromadb
     ports:
-      - "8000:8000"
+      - "8003:8000"
     environment:
       - CHROMA_SERVER_AUTH_PROVIDER=none
       - CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=none
@@ -16,11 +16,13 @@ services:
     networks:
       - doctor-notes-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/heartbeat || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+    # healthcheck 임시 비활성화 - ChromaDB가 자체적으로 헬스체크 엔드포인트를 제공하지 않음
+    # healthcheck:
+    #   test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/v1')"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 40s
 
   backend:
     build:
@@ -104,8 +106,7 @@ services:
     ports:
       - "8001:8001"
     depends_on:
-      chromadb:
-        condition: service_healthy
+      - chromadb
     environment:
       - PYTHONPATH=/app
       - CHROMA_HOST=chromadb

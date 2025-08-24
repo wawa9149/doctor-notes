@@ -48,9 +48,16 @@ async def root():
             "/rag/merge",
             "/rag/chat", 
             "/rag/reindex",
-            "/rag/health"
+            "/rag/health",
+            "/health"
         ]
     }
+
+# 간단한 헬스체크 (Docker용)
+@app.get("/health")
+async def health():
+    """Docker 헬스체크용 간단한 엔드포인트"""
+    return {"status": "healthy"}
 
 if __name__ == "__main__":
     import uvicorn
