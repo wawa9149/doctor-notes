@@ -1,0 +1,25 @@
+# 모델 파일
+models/
+*.gguf
+*.bin
+*.safetensors
+*.pth
+*.pt
+*.h5
+
+# 임베딩 데이터
+embeddings/
+*.pkl
+*.npy
+
+# ChromaDB 로컬 데이터
+chroma_db/
+*.sqlite3
+
+# 캐시
+__pycache__/
+*.pyc
+.cache/
+
+# 환경 파일
+.env.local
