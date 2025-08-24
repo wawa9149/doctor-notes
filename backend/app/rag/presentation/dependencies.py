@@ -1,7 +1,7 @@
 """
 Dependency Injection - 의존성 주입
 """
-from functools import lru_cache
+from typing import Optional
 
 from ..application.use_cases import (
     GenerateSOAPUseCase, ChatQueryUseCase, ReindexEncounterUseCase
@@ -14,32 +14,46 @@ from ..infrastructure.config import get_settings
 
 settings = get_settings()
 
+# 싱글톤 인스턴스들
+_vector_store: Optional[ChromaDBVectorStore] = None
+_embedding_service: Optional[HuggingFaceEmbedding] = None
+_llm_service: Optional[LLMService] = None
+_chunking_service: Optional[ChunkingService] = None
 
-@lru_cache()
+
 def get_vector_store():
     """벡터 스토어 인스턴스"""
-    return ChromaDBVectorStore()
+    global _vector_store
+    if _vector_store is None:
+        _vector_store = ChromaDBVectorStore()
+    return _vector_store
 
 
-@lru_cache()
 def get_embedding_service():
     """임베딩 서비스 인스턴스"""
-    return HuggingFaceEmbedding()
+    global _embedding_service
+    if _embedding_service is None:
+        _embedding_service = HuggingFaceEmbedding()
+    return _embedding_service
 
 
-@lru_cache()
 def get_llm_service():
     """LLM 서비스 인스턴스"""
-    return LLMService()
+    global _llm_service
+    if _llm_service is None:
+        _llm_service = LLMService()
+    return _llm_service
 
 
-@lru_cache()
 def get_chunking_service():
     """청킹 서비스 인스턴스"""
-    return ChunkingService(
-        chunk_size=settings.CHUNK_SIZE,
-        chunk_overlap=settings.CHUNK_OVERLAP
-    )
+    global _chunking_service
+    if _chunking_service is None:
+        _chunking_service = ChunkingService(
+            chunk_size=settings.CHUNK_SIZE,
+            chunk_overlap=settings.CHUNK_OVERLAP
+        )
+    return _chunking_service
 
 
 def get_generate_soap_use_case() -> GenerateSOAPUseCase:

@@ -113,11 +113,20 @@ services:
       - CHROMA_PORT=8000
       - LLM_MODEL=${LLM_MODEL:-gpt-4}
       - LLM_API_KEY=${LLM_API_KEY}
-      - EMBEDDING_MODEL=jhgan/ko-sroberta-multitask
+      - EMBEDDING_MODEL_PATH=/opt/models/ko-sroberta
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
       - RETRIEVAL_TOP_K=5
       - RETRIEVAL_TOP_M=3
       - CHUNK_SIZE=500
       - CHUNK_OVERLAP=50
+    volumes:
+      # 개발 중 코드 변경사항 실시간 반영
+      - ./backend/app/rag:/app/app/rag:ro
+      # 모델 볼륨 (호스트 → 컨테이너)
+      - ./backend/app/rag/models/ko-sroberta:/opt/models/ko-sroberta:ro
+      # Chroma 퍼시스트 볼륨
+      - ./backend/data/embeddings:/app/data/embeddings
     networks:
       - doctor-notes-network
     restart: unless-stopped

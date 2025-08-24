@@ -92,9 +92,11 @@ class ChromaDBVectorStore(VectorStoreRepository):
             results = self.notes_collection.query(
                 query_embeddings=[query_embedding],
                 where={
-                    "tenant_id": tenant_id,
-                    "patient_id": patient_id,
-                    "encounter_id": encounter_id
+                    "$and": [
+                        {"tenant_id": {"$eq": tenant_id}},
+                        {"patient_id": {"$eq": patient_id}},
+                        {"encounter_id": {"$eq": encounter_id}}
+                    ]
                 },
                 n_results=top_k,
                 include=["documents", "metadatas", "distances"]
@@ -153,9 +155,11 @@ class ChromaDBVectorStore(VectorStoreRepository):
         try:
             self.notes_collection.delete(
                 where={
-                    "tenant_id": tenant_id,
-                    "patient_id": patient_id,
-                    "encounter_id": encounter_id
+                    "$and": [
+                        {"tenant_id": {"$eq": tenant_id}},
+                        {"patient_id": {"$eq": patient_id}},
+                        {"encounter_id": {"$eq": encounter_id}}
+                    ]
                 }
             )
             logger.info(f"Deleted notes for encounter {encounter_id}")
