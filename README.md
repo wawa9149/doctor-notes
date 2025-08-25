@@ -43,11 +43,16 @@ doctor-notes/
 ├── backend/              # FastAPI 백엔드
 │   ├── app/
 │   │   ├── main.py       # 메인 API
+│   │   ├── api/          # API 라우터
+│   │   ├── models/       # SQLAlchemy 모델
+│   │   ├── schemas/      # Pydantic 스키마
+│   │   ├── services/     # 비즈니스 로직
 │   │   └── rag/          # RAG 서비스
 │   │       ├── domain/       # 도메인 로직
 │   │       ├── application/  # 유스케이스
 │   │       ├── infrastructure/ # 외부 서비스
 │   │       └── presentation/ # API 엔드포인트
+│   ├── requirements.txt  # Python 의존성
 │   ├── Dockerfile        # 백엔드용
 │   └── Dockerfile.rag    # RAG 서비스용
 ├── frontend-vite-backup/ # 기존 Vite 프로젝트 (백업)
@@ -55,15 +60,6 @@ doctor-notes/
 ```
 
 ## 🏗️ 주요 기능
-
-### **React 19 최신 기능**
-
-- **use Hook** - Promise 직접 처리
-- **Suspense** - 자동 로딩 상태 관리
-- **서버 컴포넌트** - 서버에서 데이터 페칭
-- **App Router** - 파일 기반 라우팅
-
-### **의료 앱 특화 기능**
 
 - 환자 정보 관리
 - 상담 내용 분석

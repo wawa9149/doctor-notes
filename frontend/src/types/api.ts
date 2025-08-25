@@ -57,6 +57,21 @@ export interface EMRSaveResponse {
   message: string;
 }
 
+export interface MergeRequest {
+  tenant_id: string;
+  patient_id: string;
+  encounter_id: string;
+  paragraph: Array<{
+    paragraph_speaker: "doctor" | "patient";
+    paragraph_text: string;
+  }>;
+  doctor_note: string;
+}
+
+export interface MergeResponse {
+  soap_summary: string;
+}
+
 // Re-export commonly used types for convenience
 export type { HumanName, PatientListItem, PatientRecord } from "./patient";
 export type { EMRRecord } from "./emr";

@@ -4,7 +4,7 @@ AI를 활용한 의료진과 환자의 대화 분석 및 EMR(전자의무기록)
 
 ## 🚀 기술 스택
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 15
 - **Language**: TypeScript
 - **UI Library**: React 19
 - **Styling**: Tailwind CSS 4
@@ -131,25 +131,6 @@ NEXT_TELEMETRY_DISABLED=1
 - **진료 기록 목록**: 환자의 모든 진료 기록
 - **기록 삭제**: 개별 진료 기록 삭제
 - **환자 삭제**: 환자와 관련된 모든 데이터 삭제
-
-## 🎨 UI/UX 특징
-
-### **반응형 디자인**
-
-- 모바일, 태블릿, 데스크톱 모든 기기 지원
-- Tailwind CSS를 활용한 반응형 레이아웃
-
-### **사용자 친화적 인터페이스**
-
-- 직관적인 네비게이션
-- 로딩 상태 및 에러 처리
-- 확인 대화상자로 실수 방지
-
-### **접근성**
-
-- 시맨틱 HTML 구조
-- 키보드 네비게이션 지원
-- 스크린 리더 호환
 
 ## 🔧 개발 가이드
 
@@ -308,38 +289,6 @@ npm run lint
 ## 📄 라이선스
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다.
-
-## 🆘 문제 해결
-
-### **일반적인 문제들**
-
-1. **포트 충돌**: 다른 프로세스가 3000번 포트를 사용 중인 경우
-
-   ```bash
-   # 포트 확인
-   lsof -i :3000
-   # 다른 포트로 실행
-   npm run dev -- -p 3001
-   ```
-
-2. **의존성 문제**: node_modules 삭제 후 재설치
-
-   ```bash
-   rm -rf node_modules package-lock.json
-   npm install
-   ```
-
-3. **빌드 오류**: TypeScript 타입 오류 확인
-   ```bash
-   npm run lint
-   npx tsc --noEmit
-   ```
-
-### **성능 문제**
-
-1. **느린 로딩**: 이미지 최적화 및 코드 분할 확인
-2. **메모리 누수**: useEffect cleanup 함수 확인
-3. **API 호출 지연**: 네트워크 탭에서 요청 분석
 
 ## 📞 지원
 

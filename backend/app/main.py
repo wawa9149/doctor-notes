@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from app.api import analyze, emr
+from app.api import emr, stt, merge, chat
 
 app = FastAPI()
 
@@ -31,5 +31,7 @@ def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 # 라우터 등록
-app.include_router(analyze.router, prefix="/analyze", tags=["analyze"])
 app.include_router(emr.router, prefix="/emr", tags=["emr"])
+app.include_router(stt.router, prefix="/stt", tags=["stt"])
+app.include_router(merge.router, prefix="/merge", tags=["merge"])
+app.include_router(chat.router, prefix="/chat", tags=["chat"])
