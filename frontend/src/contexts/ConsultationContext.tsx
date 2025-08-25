@@ -8,18 +8,14 @@ import {
   useContext,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
-import { useAnalysis } from "@/hooks/useEMR";
+import { mergeContent } from "@/services/emrService";
 import { useSTT, type STTUtterance } from "@/hooks/useSTT";
 import type { PatientListItem } from "@/types/patient";
+import type { MergeRequest } from "@/types/api";
+
 
 // Types
 type SpeakerRole = "환자" | "의사" | "기타";
-interface MergedContent {
-  conversation: string;
-  doctorNote: string;
-  summary: string[];
-}
 
 // 1. 상태를 위한 Context 생성
 const ConsultationStateContext = createContext<
@@ -27,15 +23,13 @@ const ConsultationStateContext = createContext<
       selectedPatient: PatientListItem | null;
       doctorNote: string;
       isProcessingMerge: boolean;
-      mergedContent: MergedContent | null;
       speakerRoles: Record<string, SpeakerRole>;
       uniqueSpeakers: string[];
-      analysisLoading: boolean;
-      analysisError: Error | null;
       isRecording: boolean;
       isProcessing: boolean;
       utterances: STTUtterance[];
       sttError: string | null;
+      soapSummary: string | null;
     }
   | undefined
 >(undefined);
@@ -49,32 +43,23 @@ const ConsultationDispatchContext = createContext<
       stopRecording: () => void;
       resetTranscript: () => void;
       handleRoleChange: (speaker: string, role: SpeakerRole) => void;
-      handleMergeContent: () => Promise<void>;
       handleSubmit: (e: React.FormEvent) => Promise<void>;
+      clearResult: () => void;
     }
   | undefined
 >(undefined);
 
 // 3. Provider 컴포넌트 생성
 export function ConsultationProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const [selectedPatient, setSelectedPatient] =
     useState<PatientListItem | null>(null);
   const [doctorNote, setDoctorNote] = useState("");
   const [isProcessingMerge, setIsProcessingMerge] = useState(false);
-  const [mergedContent, setMergedContent] = useState<MergedContent | null>(
-    null
-  );
   const [speakerRoles, setSpeakerRoles] = useState<
     Record<string, SpeakerRole>
   >({});
   const [uniqueSpeakers, setUniqueSpeakers] = useState<string[]>([]);
-
-  const {
-    analyzeText,
-    loading: analysisLoading,
-    error: analysisError,
-  } = useAnalysis();
+  const [soapSummary, setSoapSummary] = useState<string | null>(null);
 
   const {
     isRecording,
@@ -96,7 +81,7 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
         const newRoles = { ...prevRoles };
         newSpeakers.forEach(speaker => {
           if (!newRoles[speaker]) {
-            newRoles[speaker] = speaker === "SPEAKER-00" ? "환자" : "의사";
+            newRoles[speaker] = uniqueSpeakers.length > 1 && speaker === uniqueSpeakers[1] ? "의사" : "환자";
           }
         });
         return newRoles;
@@ -104,7 +89,7 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
     } else {
       setUniqueSpeakers([]);
     }
-  }, [utterances]);
+  }, [utterances, uniqueSpeakers.length]);
 
   const handleRoleChange = useCallback(
     (speaker: string, role: SpeakerRole) => {
@@ -113,81 +98,66 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const handleMergeContent = useCallback(async () => {
-    setIsProcessingMerge(true);
-    try {
-      const conversationText = utterances
-        .map(u => `${speakerRoles[u.speaker] || u.speaker}: ${u.text}`)
-        .join("\n");
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      setMergedContent({
-        conversation: conversationText,
-        doctorNote: doctorNote,
-        summary: [
-          "주요 증상: 두통, 어지러움",
-          "진찰 소견: 혈압 정상, 신경학적 검사 정상",
-          "처방: 진통제 처방, 휴식 권고",
-          "다음 진료: 2주 후 재진료",
-        ],
-      });
-    } catch (error) {
-      console.error("RAG 처리 중 오류:", error);
-      alert("내용을 처리하는 중 오류가 발생했습니다.");
-    } finally {
-      setIsProcessingMerge(false);
-    }
-  }, [utterances, speakerRoles, doctorNote]);
+  const clearResult = useCallback(() => {
+    setSoapSummary(null);
+  }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      const conversationText = utterances
-        .map(u => `${speakerRoles[u.speaker] || u.speaker}: ${u.text}`)
-        .join("\n");
-      const finalText = `${conversationText}\n\n[의사 메모]\n${doctorNote}`;
-      if (!finalText.trim() || utterances.length === 0) {
-        alert("분석할 대화 내용이 없습니다.");
+      setIsProcessingMerge(true);
+
+      if (utterances.length === 0 || !doctorNote.trim()) {
+        alert("녹음된 대화 내용과 의사 메모를 모두 입력해주세요.");
+        setIsProcessingMerge(false);
         return;
       }
+      
+      const paragraph: MergeRequest["paragraph"] = utterances
+        .map(u => {
+            const role = speakerRoles[u.speaker];
+            if (role !== "의사" && role !== "환자") {
+                return null;
+            }
+            return {
+                paragraph_speaker: role === "의사" ? "doctor" : "patient",
+                paragraph_text: u.text,
+            };
+        })
+        .filter((p): p is NonNullable<typeof p> => p !== null);
+
       try {
-        const analysisData = await analyzeText(finalText);
-        sessionStorage.setItem(
-          "analysisData",
-          JSON.stringify({
-            analysisData,
-            conversationText: finalText,
-            selectedPatient,
-          })
-        );
-        router.push("/analysis");
+        const mergeData: MergeRequest = {
+          tenant_id: "hospA", // 임시값
+          patient_id: selectedPatient?.identifier || "p123", // 임시값
+          encounter_id: "e789", // 임시값
+          paragraph,
+          doctor_note: doctorNote,
+        };
+
+        const response = await mergeContent(mergeData);
+        setSoapSummary(response.soap_summary);
       } catch (error) {
-        console.error("분석 실패:", error);
-        alert("분석에 실패했습니다. 다시 시도해주세요.");
+        console.error("EMR 합치기 실패:", error);
+        alert("EMR 합치기에 실패했습니다. 다시 시도해주세요.");
+      } finally {
+        setIsProcessingMerge(false);
       }
     },
-    [
-      utterances,
-      doctorNote,
-      speakerRoles,
-      analyzeText,
-      selectedPatient,
-      router,
-    ]
+    [utterances, doctorNote, speakerRoles, selectedPatient]
   );
 
   const state = {
     selectedPatient,
     doctorNote,
     isProcessingMerge,
-    mergedContent,
     speakerRoles,
     uniqueSpeakers,
-    analysisLoading,
-    analysisError,
     isRecording,
     isProcessing,
     utterances,
     sttError,
+    soapSummary,
   };
 
   const dispatch = {
@@ -197,8 +167,8 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
     stopRecording,
     resetTranscript,
     handleRoleChange,
-    handleMergeContent,
     handleSubmit,
+    clearResult,
   };
 
   return (

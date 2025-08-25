@@ -18,21 +18,6 @@ export default function PatientSelector({
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-cyan-500 transition-all hover:shadow-xl">
       <div className="flex items-center mb-4">
-        <span className="text-cyan-500 mr-3">
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
-        </span>
         <h2 className="text-xl font-semibold">환자 선택</h2>
       </div>
       <select

@@ -96,3 +96,17 @@ class EMRRecord(BaseModel):
     medications: List[MedicationStatementResponse] = []
     conversation: Optional[ConversationResponse] = None
     model_config = model_config_with_json_encoders
+
+class Paragraph(BaseModel):
+    paragraph_speaker: str  # "doctor" | "patient"
+    paragraph_text: str
+
+class MergeRequest(BaseModel):
+    tenant_id: str
+    patient_id: str
+    encounter_id: str
+    paragraph: List[Paragraph]
+    doctor_note: str
+
+class MergeResponse(BaseModel):
+    soap_summary: str

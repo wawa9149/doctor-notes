@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import NewConsultationView from "./NewConsultationView";
 import PatientRecordsView from "./PatientRecordsView";
-import { useConsultationState } from "@/contexts/ConsultationContext";
+// import { useConsultationState } from "@/contexts/ConsultationContext";
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"new" | "records">("new");
-  const { analysisError } = useConsultationState();
+  // const { analysisError } = useConsultationState();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -56,30 +56,6 @@ export default function HomePage() {
       </div>
 
       <div className="max-w-7xl mx-auto p-8">
-        {/* 에러 처리 */}
-        {analysisError && (
-          <div className="max-w-3xl mx-auto mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
-            <div className="flex items-center space-x-3">
-              <svg
-                className="h-6 w-6 text-red-500"
-                fill="none"
-                viewBox="0 0 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <p className="text-red-600">
-                분석 중 오류가 발생했습니다: {analysisError.message}
-              </p>
-            </div>
-          </div>
-        )}
-
         {activeTab === "new" ? (
           <NewConsultationView isClient={isClient} />
         ) : (
