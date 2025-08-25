@@ -55,7 +55,6 @@ doctor-notes/
 │   ├── requirements.txt  # Python 의존성
 │   ├── Dockerfile        # 백엔드용
 │   └── Dockerfile.rag    # RAG 서비스용
-├── frontend-vite-backup/ # 기존 Vite 프로젝트 (백업)
 └── docker-compose.yml    # Docker 설정
 ```
 
