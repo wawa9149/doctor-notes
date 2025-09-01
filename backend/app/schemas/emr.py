@@ -122,17 +122,14 @@ class EMRSaveResponse(BaseModel):
     patient_id: int
     encounter_id: int
 
-class EMRRecord(BaseModel):
-    encounter: EncounterResponse
-    conditions: List[ConditionResponse] = []
-    observations: List[ObservationResponse] = []
-    medications: List[MedicationStatementResponse] = []
-    conversation: Optional[ConversationResponse] = None
-    model_config = model_config_with_json_encoders
+class MergeResponse(BaseModel):
+    soap_summary: str
+
 
 class Paragraph(BaseModel):
     paragraph_speaker: str  # "doctor" | "patient"
     paragraph_text: str
+
 
 class MergeRequest(BaseModel):
     tenant_id: str
@@ -141,8 +138,6 @@ class MergeRequest(BaseModel):
     paragraph: List[Paragraph]
     doctor_note: str
 
-class MergeResponse(BaseModel):
-    soap_summary: str
 
 class SOAPNoteResponse(BaseModel):
     id: int
@@ -179,6 +174,18 @@ class ChatSessionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class EMRRecord(BaseModel):
+    encounter: EncounterResponse
+    conditions: List[ConditionResponse] = []
+    observations: List[ObservationResponse] = []
+    medications: List[MedicationStatementResponse] = []
+    conversation: Optional[ConversationResponse] = None
+    soap_notes: List[SOAPNoteResponse] = []
+    chat_sessions: List[ChatSessionResponse] = []
+    
+    model_config = model_config_with_json_encoders
 
 
 class ChatSessionCreate(BaseModel):

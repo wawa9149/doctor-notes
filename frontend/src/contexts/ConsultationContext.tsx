@@ -47,8 +47,9 @@ const ConsultationDispatchContext = createContext<
       handleRoleChange: (speaker: string, role: SpeakerRole) => void;
       handleSubmit: (e: React.FormEvent) => Promise<void>;
       clearResult: () => void;
-      startNewEncounter: () => Promise<void>;
+      startNewEncounter: () => Promise<any>;
       finishEncounter: () => Promise<void>;
+      handleCompleteConsultation: () => Promise<void>;
     }
   | undefined
 >(undefined);
@@ -109,7 +110,8 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
 
   const startNewEncounter = useCallback(async () => {
     if (!selectedPatient) {
-      throw new Error("환자를 선택해주세요.");
+      alert("환자를 선택해주세요.");
+      return;
     }
 
     try {
@@ -122,16 +124,16 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
       });
       
       setCurrentEncounter(encounter);
-      return encounter;
     } catch (error) {
       console.error("진료 접수 생성 실패:", error);
-      throw error;
+      alert("진료 접수 생성 실패: " + (error instanceof Error ? error.message : "알 수 없는 오류"));
     }
   }, [selectedPatient]);
 
   const finishEncounter = useCallback(async () => {
     if (!currentEncounter) {
-      throw new Error("진료 접수가 없습니다.");
+      alert("진료 접수가 없습니다.");
+      return;
     }
 
     try {
@@ -139,7 +141,7 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
       setCurrentEncounter(null);
     } catch (error) {
       console.error("진료 접수 종료 실패:", error);
-      throw error;
+      alert("진료 접수 종료 실패: " + (error instanceof Error ? error.message : "알 수 없는 오류"));
     }
   }, [currentEncounter]);
 
@@ -200,6 +202,24 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
     [utterances, doctorNote, speakerRoles, selectedPatient, currentEncounter, startNewEncounter]
   );
 
+  const handleCompleteConsultation = async () => {
+    if (!currentEncounter) {
+      alert("진행 중인 진료가 없습니다.");
+      return;
+    }
+    try {
+      await finishEncounter();
+      alert("진료가 완료되고 모든 내용이 저장되었습니다.");
+      // 상태 초기화
+      setSelectedPatient(null);
+      setDoctorNote("");
+      resetTranscript();
+      clearResult();
+    } catch (error) {
+      alert("진료 완료 처리에 실패했습니다.");
+    }
+  };
+
   const state = {
     selectedPatient,
     currentEncounter,
@@ -225,6 +245,7 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
     clearResult,
     startNewEncounter,
     finishEncounter,
+    handleCompleteConsultation,
   };
 
   return (

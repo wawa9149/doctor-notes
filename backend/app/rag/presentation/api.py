@@ -101,11 +101,9 @@ async def chat_query(
     use_case: ChatQueryUseCase = Depends(get_chat_query_use_case)
 ):
     """
-    질의응답 처리
-    
-    - 특정 encounter 내에서 질문에 답변
-    - 상담노트와 의학 지식베이스 검색
+    RAG 기반 채팅 응답 생성
     """
+    logger.info(f"Received chat query request: {request.dict()}")
     try:
         logger.info(f"Processing chat request for encounter {request.encounter_id}")
         

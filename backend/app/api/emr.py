@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 import logging
+from pydantic import ValidationError
 
 from app.db.session import get_db
 from app.services.fhir_mapper import FHIRMapper
-from app.models.emr import Patient, Encounter, Condition, Observation, MedicationStatement, Conversation
+from app.models.emr import Patient, Encounter, Condition, Observation, MedicationStatement, Conversation, SOAPNote, ChatSession
 from app.schemas.emr import (
     EMRSaveRequest,
     EMRSaveResponse,
@@ -18,6 +19,12 @@ from app.schemas.emr import (
     EncounterStatusUpdate,
     PatientResponse,
     PatientCreateRequest,
+    ConditionResponse,
+    ObservationResponse,
+    MedicationStatementResponse,
+    ConversationResponse,
+    SOAPNoteResponse,
+    ChatSessionResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -172,6 +179,7 @@ def create_patient(
     db: Session = Depends(get_db)
 ):
     """새로운 환자를 등록합니다."""
+    logger.info(f"Received request to create patient: {request.dict()}")
     try:
         # 중복 확인
         existing_patient = db.query(Patient).filter(Patient.identifier == request.identifier).first()
@@ -293,12 +301,34 @@ def get_patient_records(
     
     records = []
     for encounter in encounters:
+        # 각 Encounter에 대한 상세 정보 조회
+        conditions = db.query(Condition).filter(Condition.encounter_id == encounter.id).all()
+        observations = db.query(Observation).filter(Observation.encounter_id == encounter.id).all()
+        medications = db.query(MedicationStatement).filter(MedicationStatement.encounter_id == encounter.id).all()
+        conversation = db.query(Conversation).filter(Conversation.encounter_id == encounter.id).first()
+        soap_notes_from_db = db.query(SOAPNote).filter(SOAPNote.encounter_id == encounter.id).all()
+        chat_sessions = db.query(ChatSession).filter(ChatSession.encounter_id == encounter.id).all()
+
+        validated_soap_notes = []
+        for s in soap_notes_from_db:
+            try:
+                validated_soap_notes.append(SOAPNoteResponse.model_validate(s))
+            except ValidationError as e:
+                logger.warning(f"SOAPNote(id={s.id}) validation failed for citations: {e}. Replacing with empty list.")
+                # Pydantic 모델은 불변이므로, 딕셔너리로 변환하여 수정 후 다시 검증
+                s_dict = {c.name: getattr(s, c.name) for c in s.__table__.columns}
+                s_dict["citations"] = []
+                validated_soap_notes.append(SOAPNoteResponse.model_validate(s_dict))
+
+
         record = EMRRecord(
-            encounter=encounter,
-            conditions=encounter.conditions,
-            observations=encounter.observations,
-            medications=encounter.medications,
-            conversation=encounter.conversation
+            encounter=EncounterResponse.model_validate(encounter),
+            conditions=[ConditionResponse.model_validate(c) for c in conditions],
+            observations=[ObservationResponse.model_validate(o) for o in observations],
+            medications=[MedicationStatementResponse.model_validate(m) for m in medications],
+            conversation=ConversationResponse.model_validate(conversation) if conversation else None,
+            soap_notes=validated_soap_notes,
+            chat_sessions=[ChatSessionResponse.model_validate(cs) for cs in chat_sessions]
         )
         records.append(record)
     

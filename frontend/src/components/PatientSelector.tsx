@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPatient } from "@/services/patientService";
 import { usePatientsDispatch } from "@/contexts/PatientsContext";
-import type { PatientListItem }from "@/types/patient";
+import type { PatientListItem } from "@/types/patient";
 
 interface PatientSelectorProps {
   patients: PatientListItem[];
@@ -39,8 +39,8 @@ export default function PatientSelector({
 
     try {
       const newPatient = await createPatient(newPatientData);
-      addPatientToList(newPatient);
-      onSelectPatient(newPatient);
+      addPatientToList(newPatient); // 환자 목록에 즉시 추가
+      onSelectPatient(newPatient); // 새로 추가된 환자를 선택 상태로 만듦
       setIsModalOpen(false);
     } catch (error) {
       console.error("환자 생성 실패:", error);

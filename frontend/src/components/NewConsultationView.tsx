@@ -46,6 +46,7 @@ export default function NewConsultationView({
     clearResult,
     startNewEncounter,
     finishEncounter,
+    handleCompleteConsultation,
   } = useConsultationDispatch();
   
   const { patients } = usePatientsState();
@@ -201,18 +202,13 @@ export default function NewConsultationView({
                 </button>
                 
                 <button
-                  onClick={() => {
-                    resetTranscript();
-                    setDoctorNote("");
-                    clearResult();
-                    setIsChatBotOpen(false);
-                  }}
+                  onClick={handleCompleteConsultation}
                   className="px-6 py-3 bg-gray-600 text-white rounded-xl shadow-md hover:bg-gray-700 hover:shadow-lg font-medium transition-all duration-200 flex items-center space-x-2"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>새 진료 시작</span>
+                  <span>진료 완료 및 저장</span>
                 </button>
               </div>
             </div>
@@ -267,6 +263,7 @@ function ChatBotContent({
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -301,6 +298,13 @@ function ChatBotContent({
         requestBody.encounter_id = currentEncounter.id.toString();
       }
 
+      // 채팅 세션 ID가 있으면 추가
+      if (chatSessionId) {
+        requestBody.session_id = chatSessionId;
+      }
+
+      console.log("Sending chat request:", JSON.stringify(requestBody, null, 2));
+
       const response = await fetch(`${API_BASE_URL}/chat/query`, {
         method: 'POST',
         headers: {
@@ -314,6 +318,11 @@ function ChatBotContent({
       }
 
       const data = await response.json();
+
+      // If a new session was created, save its ID
+      if (data.session_id && !chatSessionId) {
+        setChatSessionId(data.session_id);
+      }
 
       const assistantMessage = {
         role: 'assistant',

@@ -12,6 +12,7 @@ from app.schemas.emr import (
     ChatSessionCreate, ChatSessionResponse,
     ChatMessageCreate, ChatMessageResponse
 )
+from app.models.emr import Patient
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -48,19 +49,48 @@ chat_history = []
 rolling_summary = None
 
 @router.post("/query", response_model=ChatResponse)
-async def chat_query(request: ChatRequest):
+async def chat_query(
+    request: ChatRequest,
+    db: Session = Depends(get_db)
+):
     """
     클라이언트로부터 챗 쿼리를 받아 RAG 서비스에 전달하고 응답을 반환합니다.
     """
-    global chat_history, rolling_summary
+    # global chat_history, rolling_summary # 전역 변수 대신 DB 사용
     
     try:
-        # 대화 히스토리에 사용자 메시지 추가
-        chat_history.append({"role": "user", "text": request.text})
+        # 세션 관리
+        session_id = request.session_id
+        chat_session = None
+
+        if session_id:
+            chat_session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
         
-        # 최근 5턴만 유지 (10개 메시지 = 5턴)
-        recent_turns = chat_history[-10:] if len(chat_history) > 10 else chat_history[:-1]
+        if not chat_session:
+            # 세션이 없거나 ID가 유효하지 않으면 새로 생성
+            if not request.patient_id or not request.encounter_id:
+                raise HTTPException(status_code=400, detail="새로운 채팅 시작을 위해 patient_id와 encounter_id가 필요합니다.")
+            
+            # patient_id (identifier)로 환자 정보 조회
+            patient = db.query(Patient).filter(Patient.identifier == request.patient_id).first()
+            if not patient:
+                raise HTTPException(status_code=404, detail=f"환자 ID {request.patient_id}를 찾을 수 없습니다.")
+
+            new_session_id = str(uuid.uuid4())
+            chat_session = ChatSession(
+                session_id=new_session_id,
+                patient_id=patient.id, # 조회한 환자의 숫자 ID 사용
+                encounter_id=int(request.encounter_id)
+            )
+            db.add(chat_session)
+            db.flush()
+            session_id = new_session_id
         
+        # DB에서 최근 대화와 요약 불러오기
+        recent_messages = db.query(ChatMessage).filter(ChatMessage.session_id == chat_session.id).order_by(ChatMessage.timestamp.desc()).limit(10).all()
+        recent_turns = [{"role": m.role, "text": m.content} for m in reversed(recent_messages)]
+        rolling_summary = chat_session.rolling_summary
+
         # RAG 서비스에 보낼 요청 구성
         rag_request = RAGRequest(
             tenant_id="hospA",
@@ -71,14 +101,13 @@ async def chat_query(request: ChatRequest):
             rolling_summary=rolling_summary
         )
         
-        # TODO: 채팅 세션을 데이터베이스에 저장하는 로직 추가
-        # if request.session_id:
-        #     # 기존 세션에 메시지 추가
-        #     pass
-        # else:
-        #     # 새 세션 생성
-        #     pass
+        logger.info(f"Sending request to RAG service: {rag_request.dict()}")
         
+        # 사용자 메시지 DB에 저장
+        user_message = ChatMessage(session_id=chat_session.id, role="user", content=request.text)
+        db.add(user_message)
+        db.commit()
+
         # RAG 서비스 호출
         async with httpx.AsyncClient() as client:
             try:
@@ -94,12 +123,15 @@ async def chat_query(request: ChatRequest):
                 
                 rag_response = RAGResponse(**response.json())
                 
-                # 대화 히스토리에 AI 응답 추가
-                chat_history.append({"role": "assistant", "text": rag_response.answer})
-                
+                # AI 응답 DB에 저장
+                assistant_message = ChatMessage(session_id=chat_session.id, role="assistant", content=rag_response.answer)
+                db.add(assistant_message)
+
                 # rolling_summary 업데이트
                 if rag_response.rolling_summary_next:
-                    rolling_summary = rag_response.rolling_summary_next
+                    chat_session.rolling_summary = rag_response.rolling_summary_next
+                
+                db.commit()
                 
                 return ChatResponse(
                     answer=rag_response.answer,
@@ -128,18 +160,6 @@ async def chat_query(request: ChatRequest):
         logger.error(f"챗 쿼리 처리 중 오류: {e}")
         raise HTTPException(status_code=500, detail="내부 서버 오류")
 
-@router.get("/history")
-async def get_chat_history():
-    """현재 대화 히스토리를 반환합니다."""
-    return {"history": chat_history, "rolling_summary": rolling_summary}
-
-@router.delete("/history")
-async def clear_chat_history():
-    """대화 히스토리를 초기화합니다."""
-    global chat_history, rolling_summary
-    chat_history = []
-    rolling_summary = None
-    return {"message": "대화 히스토리가 초기화되었습니다."}
 
 @router.post("/sessions", response_model=ChatSessionResponse)
 async def create_chat_session(
@@ -166,6 +186,19 @@ async def create_chat_session(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="채팅 세션 생성에 실패했습니다."
         )
+
+
+@router.get("/sessions/encounter/{encounter_id}", response_model=List[ChatSessionResponse])
+async def get_chat_sessions_by_encounter(
+    encounter_id: int,
+    db: Session = Depends(get_db)
+):
+    """특정 Encounter에 속한 모든 채팅 세션을 조회합니다."""
+    chat_sessions = db.query(ChatSession).filter(ChatSession.encounter_id == encounter_id).all()
+    if not chat_sessions:
+        # 오류 대신 빈 리스트를 반환하여 클라이언트 처리를 용이하게 함
+        return []
+    return chat_sessions
 
 
 @router.get("/sessions/{session_id}", response_model=ChatSessionResponse)

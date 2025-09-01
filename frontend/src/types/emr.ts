@@ -60,9 +60,11 @@ export interface ConversationResponse {
 }
 
 export interface EMRRecord {
-  encounter: EncounterRecord;
-  conditions: ConditionRecord[];
-  observations: ObservationRecord[];
-  medications: MedicationStatementRecord[];
-  conversation?: ConversationResponse;
+  encounter: EncounterResponse;
+  conditions: any[]; // Replace with specific type if available
+  observations: any[]; // Replace with specific type if available
+  medications: any[]; // Replace with specific type if available
+  conversation: any | null; // Replace with specific type if available
+  soap_notes: SOAPNoteResponse[];
+  chat_sessions: ChatSessionResponse[];
 }

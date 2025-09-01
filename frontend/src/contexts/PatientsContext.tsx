@@ -53,7 +53,8 @@ export function PatientsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addPatientToList = useCallback((patient: PatientListItem) => {
-    setPatients(prevPatients => [patient, ...prevPatients]);
+    // 새 환자를 목록의 맨 앞에 추가하여 바로 보이게 합니다.
+    setPatients(prev => [patient, ...prev]);
   }, []);
 
   const removePatientFromList = useCallback((patientId: number) => {
