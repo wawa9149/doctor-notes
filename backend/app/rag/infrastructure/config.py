@@ -15,11 +15,15 @@ class Settings(BaseSettings):
     CHROMA_COLLECTION_NOTES: str = "notes_by_encounter"
     CHROMA_COLLECTION_KB: str = "kb_psych"
     
-    # LLM 설정
-    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "gpt-4")
-    LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.7"))
-    LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "2000"))
+    # Azure OpenAI 설정
+    AZURE_API_KEY: str = ""
+    AZURE_ENDPOINT: str = ""
+    AZURE_API_VERSION: str = "2024-02-01"
+    AZURE_DEPLOYMENT_NAME: str = ""
+    
+    # LLM 호출 공통 설정
+    LLM_TEMPERATURE: float = 0.7
+    LLM_MAX_TOKENS: int = 2000
     
     # 임베딩 설정
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "jhgan/ko-sroberta-multitask")
@@ -34,7 +38,9 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        env_file_encoding = 'utf-8'
         case_sensitive = True
+        extra = "ignore"  # .env에 정의되지 않은 필드가 있어도 무시
 
 
 @lru_cache()
