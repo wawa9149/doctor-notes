@@ -26,9 +26,13 @@ def get_embedding_model() -> HuggingFaceEmbeddings:
         logger.info(f"Initializing HuggingFace embedding model from: {model_path}")
         
         _embedding_model = HuggingFaceEmbeddings(
-            model_name=model_path,
-            model_kwargs={"device": "cpu", "local_files_only": True},  # 항상 오프라인
-            encode_kwargs={"normalize_embeddings": True}
+            model_name=settings.EMBEDDING_MODEL,
+            model_kwargs={'device': 'cpu'},
+            encode_kwargs={'normalize_embeddings': True},
+            # 네트워크 문제로 모델 다운로드 실패 시 온라인 다운로드 강제
+            # 일부 환경에서는 기본값이 local_files_only=True일 수 있음
+            cache_folder=os.path.join(os.path.dirname(__file__), "..", "models"),
+            # local_files_only=False 
         )
         logger.info("HuggingFace embedding model initialized successfully")
     return _embedding_model

@@ -6,4 +6,12 @@ openai
 python-dotenv
 sqlalchemy>=2.0.0
 httpx
+chromadb
+sentence-transformers
+langchain
+langchain-community
+langchain-chroma
+langchain-huggingface
+numpy
+pandas
 python-multipart
