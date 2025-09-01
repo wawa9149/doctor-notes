@@ -1,22 +1,56 @@
-from fastapi import APIRouter
+import httpx
+import logging
+from fastapi import APIRouter, HTTPException, status
 from app.schemas.emr import MergeRequest, MergeResponse
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("/", response_model=MergeResponse)
 async def merge_consultation_content(request: MergeRequest):
     """
     진료 대화 내용과 의사 노트를 합쳐 SOAP 노트를 생성합니다.
-    (현재는 RAG 연동 전으로, 더미 데이터를 반환합니다)
+    RAG 서비스를 호출하여 실제 SOAP 노트를 생성합니다.
     """
-    # TODO: RAG 서비스(/rag/merge) 호출 로직 구현 필요
-    
-    # 더미 응답 생성
-    dummy_soap_summary = (
-        "S (Subjective): 환자는 머리가 아프고 어지럽다고 호소함. 오늘 하루 동안 다른 특별한 증상은 없었다고 함.\n"
-        "O (Objective): 혈압 정상 범위. 신경학적 검사 상 특이사항 없음. 제공된 의사 노트에 따르면 '두통과 어지러움을 호소. 혈압 정상 범위. 신경학적 검사 특이사항 없음.'으로 기록됨.\n"
-        "A (Assessment): 상세 불명의 두통 및 현기증. 추가적인 관찰 및 검사가 필요할 수 있음.\n"
-        "P (Plan): 증상 완화를 위한 약물 처방 고려. 환자에게 충분한 휴식을 취하고 증상 변화를 관찰하도록 교육함. 증상 악화 시 즉시 내원하도록 안내함."
-    )
-    
-    return MergeResponse(soap_summary=dummy_soap_summary)
+    try:
+        logger.info(f"RAG 서비스에 merge 요청 전송: encounter_id={request.encounter_id}")
+        
+        # RAG 서비스 호출
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            rag_url = "http://localhost:8001/rag/merge"
+            
+            response = await client.post(
+                rag_url,
+                json=request.dict(),
+                timeout=60.0
+            )
+            
+            if response.status_code == 200:
+                rag_response = response.json()
+                logger.info("RAG 서비스에서 SOAP 노트 생성 완료")
+                return MergeResponse(soap_summary=rag_response.get("soap_summary", ""))
+            else:
+                logger.error(f"RAG 서비스 오류: {response.status_code} - {response.text}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"RAG 서비스 오류: {response.status_code}"
+                )
+                
+    except httpx.RequestError as e:
+        logger.error(f"RAG 서비스 연결 오류: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RAG 서비스에 연결할 수 없습니다. 서비스가 실행 중인지 확인해주세요."
+        )
+    except httpx.TimeoutException as e:
+        logger.error(f"RAG 서비스 타임아웃: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="RAG 서비스 응답 시간이 초과되었습니다."
+        )
+    except Exception as e:
+        logger.error(f"Merge 요청 처리 중 예상치 못한 오류: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="서버 내부 오류가 발생했습니다."
+        )

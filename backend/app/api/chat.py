@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Optional
 import httpx
@@ -68,7 +68,7 @@ async def chat_query(request: ChatRequest):
                 response = await client.post(
                     rag_url,
                     json=rag_request.dict(),
-                    timeout=30.0
+                    timeout=60.0
                 )
                 response.raise_for_status()
                 
@@ -88,13 +88,16 @@ async def chat_query(request: ChatRequest):
                 
             except httpx.RequestError as e:
                 logger.error(f"RAG 서비스 연결 오류: {e}")
-                # RAG 서비스가 없는 경우 목업 응답
-                mock_response = f"'{request.text}'에 대한 답변입니다. (RAG 서비스 연결 실패로 인한 목업 응답)"
-                chat_history.append({"role": "assistant", "text": mock_response})
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="RAG 서비스에 연결할 수 없습니다. 서비스가 실행 중인지 확인해주세요."
+                )
                 
-                return ChatResponse(
-                    answer=mock_response,
-                    rolling_summary_next="대화가 진행 중입니다."
+            except httpx.TimeoutException as e:
+                logger.error(f"RAG 서비스 타임아웃: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                    detail="RAG 서비스 응답 시간이 초과되었습니다."
                 )
                 
             except httpx.HTTPStatusError as e:

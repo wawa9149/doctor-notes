@@ -9,7 +9,8 @@ import {
   useConsultationDispatch,
 } from "@/contexts/ConsultationContext";
 import { usePatientsState } from "@/contexts/PatientsContext";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { API_BASE_URL } from "../constants/api";
 
 interface NewConsultationViewProps {
   isClient: boolean;
@@ -186,7 +187,7 @@ export default function NewConsultationView({
               </div>
 
               {/* 챗봇 내용 */}
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col min-h-0">
                 <ChatBotContent />
               </div>
             </div>
@@ -202,6 +203,15 @@ function ChatBotContent() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -217,7 +227,7 @@ function ChatBotContent() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/chat/query', {
+      const response = await fetch(`${API_BASE_URL}/chat/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +270,7 @@ function ChatBotContent() {
 
   const clearChat = async () => {
     try {
-      await fetch('http://localhost:8000/chat/history', {
+      await fetch(`${API_BASE_URL}/chat/history`, {
         method: 'DELETE',
       });
       setMessages([]);
@@ -272,7 +282,7 @@ function ChatBotContent() {
   return (
     <>
       {/* 메시지 영역 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-8">
             <svg className="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -312,6 +322,7 @@ function ChatBotContent() {
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* 입력 영역 */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { API_BASE_URL } from '../constants/api';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -41,7 +42,7 @@ export default function ChatBot({ isOpen, onClose }: ChatBotProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/chat/query', {
+      const response = await fetch(`${API_BASE_URL}/chat/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +85,7 @@ export default function ChatBot({ isOpen, onClose }: ChatBotProps) {
 
   const clearChat = async () => {
     try {
-      await fetch('http://localhost:8000/chat/history', {
+      await fetch(`${API_BASE_URL}/chat/history`, {
         method: 'DELETE',
       });
       setMessages([]);

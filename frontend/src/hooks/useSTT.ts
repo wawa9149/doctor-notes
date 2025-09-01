@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { API_ENDPOINTS } from '../constants/api';
+import { API_ENDPOINTS, API_BASE_URL } from '../constants/api';
 
 export interface STTUtterance {
   speaker: string;
@@ -182,7 +182,7 @@ export const useSTT = (): UseSTTReturn => {
       formData.append('file', wavBlob, 'recording.wav');
       
       // 백엔드 API 호출
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}${API_ENDPOINTS.STT}`, {
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.STT}`, {
         method: 'POST',
         body: formData,
       });
