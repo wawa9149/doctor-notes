@@ -3,16 +3,17 @@
 import {
   createContext,
   useState,
-  useCallback,
   useEffect,
+  useCallback,
   useContext,
   type ReactNode,
 } from "react";
+import { useSTT } from "@/hooks/useSTT";
 import { mergeContent } from "@/services/emrService";
-import { useSTT, type STTUtterance } from "@/hooks/useSTT";
+import { createEncounter, updateEncounterStatus } from "@/services/patientService";
 import type { PatientListItem } from "@/types/patient";
-import type { MergeRequest } from "@/types/api";
-
+import type { MergeRequest, EncounterResponse } from "@/types/api";
+import type { STTUtterance } from "@/hooks/useSTT";
 
 // Types
 type SpeakerRole = "환자" | "의사" | "기타";
@@ -21,6 +22,7 @@ type SpeakerRole = "환자" | "의사" | "기타";
 const ConsultationStateContext = createContext<
   | {
       selectedPatient: PatientListItem | null;
+      currentEncounter: EncounterResponse | null;
       doctorNote: string;
       isProcessingMerge: boolean;
       speakerRoles: Record<string, SpeakerRole>;
@@ -45,6 +47,8 @@ const ConsultationDispatchContext = createContext<
       handleRoleChange: (speaker: string, role: SpeakerRole) => void;
       handleSubmit: (e: React.FormEvent) => Promise<void>;
       clearResult: () => void;
+      startNewEncounter: () => Promise<void>;
+      finishEncounter: () => Promise<void>;
     }
   | undefined
 >(undefined);
@@ -53,6 +57,7 @@ const ConsultationDispatchContext = createContext<
 export function ConsultationProvider({ children }: { children: ReactNode }) {
   const [selectedPatient, setSelectedPatient] =
     useState<PatientListItem | null>(null);
+  const [currentEncounter, setCurrentEncounter] = useState<EncounterResponse | null>(null);
   const [doctorNote, setDoctorNote] = useState("");
   const [isProcessingMerge, setIsProcessingMerge] = useState(false);
   const [speakerRoles, setSpeakerRoles] = useState<
@@ -81,7 +86,7 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
         const newRoles = { ...prevRoles };
         newSpeakers.forEach(speaker => {
           if (!newRoles[speaker]) {
-            newRoles[speaker] = uniqueSpeakers.length > 1 && speaker === uniqueSpeakers[1] ? "의사" : "환자";
+            newRoles[speaker] = uniqueSpeakers.length > 1 && speaker === newSpeakers[1] ? "의사" : "환자";
           }
         });
         return newRoles;
@@ -102,6 +107,42 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
     setSoapSummary(null);
   }, []);
 
+  const startNewEncounter = useCallback(async () => {
+    if (!selectedPatient) {
+      throw new Error("환자를 선택해주세요.");
+    }
+
+    try {
+      const encounter = await createEncounter({
+        patient_id: selectedPatient.id,
+        encounter_type: "consultation",
+        reason_text: "상담",
+        created_by: "doctor",
+        notes: "새로운 상담 시작"
+      });
+      
+      setCurrentEncounter(encounter);
+      return encounter;
+    } catch (error) {
+      console.error("진료 접수 생성 실패:", error);
+      throw error;
+    }
+  }, [selectedPatient]);
+
+  const finishEncounter = useCallback(async () => {
+    if (!currentEncounter) {
+      throw new Error("진료 접수가 없습니다.");
+    }
+
+    try {
+      await updateEncounterStatus(currentEncounter.id, "finished");
+      setCurrentEncounter(null);
+    } catch (error) {
+      console.error("진료 접수 종료 실패:", error);
+      throw error;
+    }
+  }, [currentEncounter]);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -112,6 +153,18 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
         setIsProcessingMerge(false);
         return;
       }
+
+      // Encounter가 없으면 새로 생성
+      let encounter = currentEncounter;
+      if (!encounter) {
+        try {
+          encounter = await startNewEncounter();
+        } catch (error) {
+          alert("진료 접수 생성에 실패했습니다.");
+          setIsProcessingMerge(false);
+          return;
+        }
+      }
       
       const paragraph: MergeRequest["paragraph"] = utterances
         .map(u => {
@@ -120,7 +173,7 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
                 return null;
             }
             return {
-                paragraph_speaker: role === "의사" ? "doctor" : "patient",
+                paragraph_speaker: role === "의사" ? "doctor" as const : "patient" as const,
                 paragraph_text: u.text,
             };
         })
@@ -128,9 +181,9 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
 
       try {
         const mergeData: MergeRequest = {
-          tenant_id: "hospA", // 임시값
-          patient_id: selectedPatient?.identifier || "p123", // 임시값
-          encounter_id: "e789", // 임시값
+          tenant_id: "hospA", // 실제로는 선택된 병원/클리닉 ID
+          patient_id: selectedPatient?.identifier || "",
+          encounter_id: encounter!.id.toString(),
           paragraph,
           doctor_note: doctorNote,
         };
@@ -144,11 +197,12 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
         setIsProcessingMerge(false);
       }
     },
-    [utterances, doctorNote, speakerRoles, selectedPatient]
+    [utterances, doctorNote, speakerRoles, selectedPatient, currentEncounter, startNewEncounter]
   );
 
   const state = {
     selectedPatient,
+    currentEncounter,
     doctorNote,
     isProcessingMerge,
     speakerRoles,
@@ -169,6 +223,8 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
     handleRoleChange,
     handleSubmit,
     clearResult,
+    startNewEncounter,
+    finishEncounter,
   };
 
   return (

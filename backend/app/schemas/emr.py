@@ -29,15 +29,48 @@ class PatientListResponse(BaseModel):
     created_at: datetime
     model_config = model_config_with_json_encoders
 
+class PatientCreateRequest(BaseModel):
+    identifier: str
+    name: str
+    birth_date: str  # YYYY-MM-DD
+    gender: str      # male | female | other | unknown
+
+class PatientResponse(PatientListResponse):
+    pass
+
 class EncounterResponse(BaseModel):
     id: int
+    patient_id: int
     status: str
-    class_: str = "AMB"
+    class_: str
     type: str
-    period: Optional[Period] = None
+    period: Optional[Dict[str, Any]] = None
+    reason_code: Optional[Dict[str, Any]] = None
     reason_text: Optional[str] = None
     created_at: datetime
-    model_config = model_config_with_json_encoders
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class EncounterCreateRequest(BaseModel):
+    patient_id: int
+    encounter_type: Optional[str] = "consultation"
+    reason_code: Optional[Dict[str, Any]] = None
+    reason_text: Optional[str] = None
+    created_by: Optional[str] = "system"
+    notes: Optional[str] = None
+
+
+class EncounterStatusUpdate(BaseModel):
+    status: str  # planned | arrived | triaged | in-progress | finished | cancelled
+
+
+class TenantInfo(BaseModel):
+    tenant_id: str
+    name: str
+    description: Optional[str] = None
 
 class ConditionResponse(BaseModel):
     id: int
@@ -110,3 +143,57 @@ class MergeRequest(BaseModel):
 
 class MergeResponse(BaseModel):
     soap_summary: str
+
+class SOAPNoteResponse(BaseModel):
+    id: int
+    encounter_id: int
+    soap_summary: str
+    citations: Optional[List[Dict[str, Any]]] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChatMessageResponse(BaseModel):
+    id: int
+    role: str
+    content: str
+    timestamp: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChatSessionResponse(BaseModel):
+    id: int
+    session_id: str
+    patient_id: int
+    encounter_id: int
+    rolling_summary: Optional[str] = None
+    messages: List[ChatMessageResponse] = []
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChatSessionCreate(BaseModel):
+    patient_id: int
+    encounter_id: int
+    rolling_summary: Optional[str] = None
+
+
+class ChatMessageCreate(BaseModel):
+    session_id: int
+    role: str
+    content: str
+
+
+class SOAPNoteCreate(BaseModel):
+    encounter_id: int
+    soap_summary: str
+    citations: Optional[List[Dict[str, Any]]] = None

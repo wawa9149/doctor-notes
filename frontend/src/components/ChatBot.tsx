@@ -12,9 +12,16 @@ interface ChatMessage {
 interface ChatBotProps {
   isOpen: boolean;
   onClose: () => void;
+  selectedPatient?: {
+    id: number;
+    identifier: string;
+  } | null;
+  currentEncounter?: {
+    id: number;
+  } | null;
 }
 
-export default function ChatBot({ isOpen, onClose }: ChatBotProps) {
+export default function ChatBot({ isOpen, onClose, selectedPatient, currentEncounter }: ChatBotProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,12 +49,22 @@ export default function ChatBot({ isOpen, onClose }: ChatBotProps) {
     setIsLoading(true);
 
     try {
+      const requestBody: any = { text: inputText };
+      
+      // 실제 환자 정보와 Encounter 정보 추가
+      if (selectedPatient) {
+        requestBody.patient_id = selectedPatient.identifier;
+      }
+      if (currentEncounter) {
+        requestBody.encounter_id = currentEncounter.id.toString();
+      }
+
       const response = await fetch(`${API_BASE_URL}/chat/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: inputText }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

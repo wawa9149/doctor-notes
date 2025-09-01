@@ -33,6 +33,7 @@ class Patient(Base):
     
     # 관계
     encounters = relationship("Encounter", back_populates="patient")
+    chat_sessions = relationship("ChatSession", back_populates="patient")
     
     # 메타데이터
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -63,6 +64,8 @@ class Encounter(Base):
     observations = relationship("Observation", back_populates="encounter")
     medications = relationship("MedicationStatement", back_populates="encounter")
     conversation = relationship("Conversation", back_populates="encounter", uselist=False)
+    chat_sessions = relationship("ChatSession", back_populates="encounter")
+    soap_notes = relationship("SOAPNote", back_populates="encounter")
     
     # 메타데이터
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -182,6 +185,61 @@ class Conversation(Base):
     # 메타데이터
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ChatSession(Base):
+    """채팅 세션 정보"""
+    __tablename__ = "chat_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, unique=True, index=True)  # 고유 세션 ID
+    patient_id = Column(Integer, ForeignKey("patients.id"))
+    encounter_id = Column(Integer, ForeignKey("encounters.id"))
+    rolling_summary = Column(Text)  # 현재까지의 대화 요약
+    
+    # 관계
+    patient = relationship("Patient", back_populates="chat_sessions")
+    encounter = relationship("Encounter", back_populates="chat_sessions")
+    messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
+    
+    # 메타데이터
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ChatMessage(Base):
+    """채팅 메시지"""
+    __tablename__ = "chat_messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("chat_sessions.id"))
+    role = Column(String, nullable=False)  # "user" 또는 "assistant"
+    content = Column(Text, nullable=False)  # 메시지 내용
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    # 관계
+    session = relationship("ChatSession", back_populates="messages")
+    
+    # 메타데이터
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SOAPNote(Base):
+    """SOAP 노트"""
+    __tablename__ = "soap_notes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    encounter_id = Column(Integer, ForeignKey("encounters.id"))
+    soap_summary = Column(Text, nullable=False)  # SOAP 노트 내용
+    citations = Column(JSON)  # 참조 정보 (선택사항)
+    
+    # 관계
+    encounter = relationship("Encounter", back_populates="soap_notes")
+    
+    # 메타데이터
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 
 # Base를 명시적으로 export
 __all__ = ['Base']

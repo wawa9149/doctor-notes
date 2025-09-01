@@ -13,6 +13,11 @@ from app.schemas.emr import (
     EMRSaveResponse,
     EMRRecord,
     PatientListResponse,
+    EncounterResponse,
+    EncounterCreateRequest,
+    EncounterStatusUpdate,
+    PatientResponse,
+    PatientCreateRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -88,6 +93,166 @@ def save_emr(
         logger.error(f"Unexpected error in save_emr: {str(e)}")
         logger.error(f"Request data: {request}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"데이터 처리 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.post("/encounters", response_model=EncounterResponse)
+def create_encounter(
+    request: EncounterCreateRequest,
+    db: Session = Depends(get_db)
+):
+    """새로운 진료 접수를 생성합니다."""
+    try:
+        # 환자 존재 확인
+        patient = db.query(Patient).filter(Patient.id == request.patient_id).first()
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="환자를 찾을 수 없습니다."
+            )
+        
+        # Encounter 생성
+        encounter_data = {
+            'patient_id': request.patient_id,
+            'status': 'in-progress',  # 기본값: 진행 중
+            'class_': 'AMB',  # 외래진료
+            'type': request.encounter_type or 'consultation',
+            'period': {
+                'start': datetime.now().isoformat(),
+                'end': None
+            },
+            'reason_code': request.reason_code,
+            'reason_text': request.reason_text
+        }
+        
+        encounter = Encounter(**encounter_data)
+        db.add(encounter)
+        db.flush()  # ID 생성을 위해 flush
+        
+        # Encounter 종료 시 period.end 업데이트를 위한 메타데이터 저장
+        encounter.meta = {
+            'created_by': request.created_by,
+            'notes': request.notes
+        }
+        
+        db.commit()
+        db.refresh(encounter)
+        
+        return EncounterResponse(
+            id=encounter.id,
+            patient_id=encounter.patient_id,
+            status=encounter.status,
+            class_=encounter.class_,
+            type=encounter.type,
+            period=encounter.period,
+            reason_code=encounter.reason_code,
+            reason_text=encounter.reason_text,
+            created_at=encounter.created_at,
+            updated_at=encounter.updated_at
+        )
+        
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error in create_encounter: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"데이터베이스 오류가 발생했습니다: {str(e)}"
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error in create_encounter: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"진료 접수 생성 중 오류가 발생했습니다: {str(e)}"
+        )
+
+
+@router.post("/patients", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
+def create_patient(
+    request: PatientCreateRequest,
+    db: Session = Depends(get_db)
+):
+    """새로운 환자를 등록합니다."""
+    try:
+        # 중복 확인
+        existing_patient = db.query(Patient).filter(Patient.identifier == request.identifier).first()
+        if existing_patient:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="이미 동일한 환자 식별자(차트번호)가 존재합니다."
+            )
+
+        patient_data = {
+            'identifier': request.identifier,
+            'name': {'text': request.name},
+            'birth_date': datetime.strptime(request.birth_date, '%Y-%m-%d').date(),
+            'gender': request.gender
+        }
+        
+        patient = Patient(**patient_data)
+        db.add(patient)
+        db.commit()
+        db.refresh(patient)
+        
+        return patient
+
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error in create_patient: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"데이터베이스 오류가 발생했습니다: {str(e)}"
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error in create_patient: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"환자 생성 중 오류가 발생했습니다: {str(e)}"
+        )
+
+@router.put("/encounters/{encounter_id}/status")
+def update_encounter_status(
+    encounter_id: int,
+    status_update: EncounterStatusUpdate,
+    db: Session = Depends(get_db)
+):
+    """진료 접수 상태를 업데이트합니다."""
+    try:
+        encounter = db.query(Encounter).filter(Encounter.id == encounter_id).first()
+        if not encounter:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="진료 접수를 찾을 수 없습니다."
+            )
+        
+        encounter.status = status_update.status
+        
+        # finished 상태로 변경 시 period.end 설정
+        if status_update.status == 'finished':
+            encounter.period = {
+                'start': encounter.period.get('start'),
+                'end': datetime.now().isoformat()
+            }
+        
+        db.commit()
+        db.refresh(encounter)
+        
+        return {"message": f"진료 접수 상태가 '{status_update.status}'로 업데이트되었습니다."}
+        
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error in update_encounter_status: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"데이터베이스 오류가 발생했습니다: {str(e)}"
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Unexpected error in update_encounter_status: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"진료 접수 상태 업데이트 중 오류가 발생했습니다: {str(e)}"
+        )
 
 
 @router.get("/patients", response_model=List[PatientListResponse])

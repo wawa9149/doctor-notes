@@ -11,6 +11,8 @@ import {
 import { usePatientsState } from "@/contexts/PatientsContext";
 import { useState, useRef, useEffect } from "react";
 import { API_BASE_URL } from "../constants/api";
+import type { PatientListItem } from "@/types/patient";
+import type { EncounterResponse } from "@/types/api";
 
 interface NewConsultationViewProps {
   isClient: boolean;
@@ -21,6 +23,7 @@ export default function NewConsultationView({
 }: NewConsultationViewProps) {
   const {
     selectedPatient,
+    currentEncounter,
     sttError,
     isRecording,
     isProcessing,
@@ -41,6 +44,8 @@ export default function NewConsultationView({
     handleRoleChange,
     handleSubmit,
     clearResult,
+    startNewEncounter,
+    finishEncounter,
   } = useConsultationDispatch();
   
   const { patients } = usePatientsState();
@@ -63,7 +68,57 @@ export default function NewConsultationView({
             isClient={isClient}
           />
 
-          {/* 2. 진료 대화 입력 */}
+          {/* 2. Encounter 상태 표시 */}
+          {selectedPatient && (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-800">진료 접수 상태</h2>
+                <div className="flex space-x-2">
+                  {!currentEncounter ? (
+                    <button
+                      onClick={startNewEncounter}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      진료 시작
+                    </button>
+                  ) : (
+                    <button
+                      onClick={finishEncounter}
+                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      진료 종료
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {currentEncounter ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-green-800 font-medium">진료 진행 중</span>
+                  </div>
+                  <div className="mt-2 text-sm text-green-700">
+                    <p>접수 ID: {currentEncounter.id}</p>
+                    <p>시작 시간: {new Date(currentEncounter.created_at).toLocaleString()}</p>
+                    <p>상태: {currentEncounter.status}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                    <span className="text-gray-600">진료 대기 중</span>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-500">
+                    환자를 선택하고 "진료 시작" 버튼을 클릭하여 상담을 시작하세요.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3. 진료 대화 입력 */}
           <ConsultationInput
             sttError={sttError}
             isRecording={isRecording}
@@ -81,7 +136,7 @@ export default function NewConsultationView({
             handleSubmit={handleSubmit}
           />
 
-          {/* 3. SOAP 노트 결과 */}
+          {/* 4. SOAP 노트 결과 */}
           {soapSummary && (
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-6">
@@ -188,7 +243,10 @@ export default function NewConsultationView({
 
               {/* 챗봇 내용 */}
               <div className="flex-1 flex flex-col min-h-0">
-                <ChatBotContent />
+                <ChatBotContent 
+                  selectedPatient={selectedPatient}
+                  currentEncounter={currentEncounter}
+                />
               </div>
             </div>
           </div>
@@ -199,7 +257,13 @@ export default function NewConsultationView({
 }
 
 // 챗봇 내용 컴포넌트 (모달 없이 인라인으로 표시)
-function ChatBotContent() {
+function ChatBotContent({ 
+  selectedPatient, 
+  currentEncounter 
+}: { 
+  selectedPatient: PatientListItem | null; 
+  currentEncounter: EncounterResponse | null; 
+}) {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -227,12 +291,22 @@ function ChatBotContent() {
     setIsLoading(true);
 
     try {
+      const requestBody: any = { text: inputText };
+      
+      // 실제 환자 정보와 Encounter 정보 추가
+      if (selectedPatient) {
+        requestBody.patient_id = selectedPatient.identifier;
+      }
+      if (currentEncounter) {
+        requestBody.encounter_id = currentEncounter.id.toString();
+      }
+
       const response = await fetch(`${API_BASE_URL}/chat/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: inputText }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

@@ -72,6 +72,56 @@ export interface MergeResponse {
   soap_summary: string;
 }
 
+export interface PatientCreateRequest {
+  identifier: string;
+  name: string;
+  birth_date: string; // YYYY-MM-DD
+  gender: 'male' | 'female' | 'other' | 'unknown';
+}
+
+export type PatientResponse = PatientListItem;
+
+export interface EncounterResponse {
+  id: number;
+  patient_id: number;
+  status: string;
+  class_: string;
+  type: string;
+  period?: {
+    start: string;
+    end?: string;
+  };
+  reason_code?: any;
+  reason_text?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EncounterCreateRequest {
+  patient_id: number;
+  encounter_type?: string;
+  reason_code?: any;
+  reason_text?: string;
+  created_by?: string;
+  notes?: string;
+}
+
+export interface EncounterStatusUpdate {
+  status: string;
+}
+
+export interface ChatRequest {
+  text: string;
+  patient_id?: string;
+  encounter_id?: string;
+  session_id?: string;
+}
+
+export interface ChatResponse {
+  answer: string;
+  rolling_summary_next?: string;
+}
+
 // Re-export commonly used types for convenience
 export type { HumanName, PatientListItem, PatientRecord } from "./patient";
 export type { EMRRecord } from "./emr";

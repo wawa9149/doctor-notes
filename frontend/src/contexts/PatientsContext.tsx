@@ -29,6 +29,7 @@ const PatientsDispatchContext = createContext<
       setSearchTerm: (term: string) => void;
       handleDeletePatient: (patientId: number, patientName: string) => Promise<void>;
       removePatientFromList: (patientId: number) => void;
+      addPatientToList: (patient: PatientListItem) => void;
     }
   | undefined
 >(undefined);
@@ -49,6 +50,10 @@ export function PatientsProvider({ children }: { children: ReactNode }) {
       }
     }
     fetchPatients();
+  }, []);
+
+  const addPatientToList = useCallback((patient: PatientListItem) => {
+    setPatients(prevPatients => [patient, ...prevPatients]);
   }, []);
 
   const removePatientFromList = useCallback((patientId: number) => {
@@ -100,6 +105,7 @@ export function PatientsProvider({ children }: { children: ReactNode }) {
     setSearchTerm,
     handleDeletePatient,
     removePatientFromList,
+    addPatientToList,
   };
 
   return (

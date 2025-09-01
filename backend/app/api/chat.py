@@ -1,8 +1,17 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 import httpx
 import logging
+import uuid
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.models.emr import ChatSession, ChatMessage
+from app.schemas.emr import (
+    ChatSessionCreate, ChatSessionResponse,
+    ChatMessageCreate, ChatMessageResponse
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -13,6 +22,9 @@ class ChatTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     text: str
+    patient_id: Optional[str] = None
+    encounter_id: Optional[str] = None
+    session_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     answer: str
@@ -52,12 +64,20 @@ async def chat_query(request: ChatRequest):
         # RAG 서비스에 보낼 요청 구성
         rag_request = RAGRequest(
             tenant_id="hospA",
-            patient_id="p123", 
-            encounter_id="e789",
+            patient_id=request.patient_id or "p123",  # 실제 환자 ID 또는 기본값
+            encounter_id=request.encounter_id or "e789",  # 실제 Encounter ID 또는 기본값
             question=request.text,
             recent_turns=recent_turns,
             rolling_summary=rolling_summary
         )
+        
+        # TODO: 채팅 세션을 데이터베이스에 저장하는 로직 추가
+        # if request.session_id:
+        #     # 기존 세션에 메시지 추가
+        #     pass
+        # else:
+        #     # 새 세션 생성
+        #     pass
         
         # RAG 서비스 호출
         async with httpx.AsyncClient() as client:
@@ -120,3 +140,109 @@ async def clear_chat_history():
     chat_history = []
     rolling_summary = None
     return {"message": "대화 히스토리가 초기화되었습니다."}
+
+@router.post("/sessions", response_model=ChatSessionResponse)
+async def create_chat_session(
+    request: ChatSessionCreate,
+    db: Session = Depends(get_db)
+):
+    """새로운 채팅 세션을 생성합니다."""
+    try:
+        session_id = str(uuid.uuid4())
+        chat_session = ChatSession(
+            session_id=session_id,
+            patient_id=request.patient_id,
+            encounter_id=request.encounter_id,
+            rolling_summary=request.rolling_summary
+        )
+        db.add(chat_session)
+        db.commit()
+        db.refresh(chat_session)
+        
+        return chat_session
+    except Exception as e:
+        logger.error(f"채팅 세션 생성 실패: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="채팅 세션 생성에 실패했습니다."
+        )
+
+
+@router.get("/sessions/{session_id}", response_model=ChatSessionResponse)
+async def get_chat_session(
+    session_id: str,
+    db: Session = Depends(get_db)
+):
+    """채팅 세션과 메시지들을 조회합니다."""
+    chat_session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
+    if not chat_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="채팅 세션을 찾을 수 없습니다."
+        )
+    return chat_session
+
+
+@router.post("/sessions/{session_id}/messages", response_model=ChatMessageResponse)
+async def add_chat_message(
+    session_id: str,
+    request: ChatMessageCreate,
+    db: Session = Depends(get_db)
+):
+    """채팅 세션에 메시지를 추가합니다."""
+    chat_session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
+    if not chat_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="채팅 세션을 찾을 수 없습니다."
+        )
+    
+    chat_message = ChatMessage(
+        session_id=chat_session.id,
+        role=request.role,
+        content=request.content
+    )
+    db.add(chat_message)
+    db.commit()
+    db.refresh(chat_message)
+    
+    return chat_message
+
+
+@router.put("/sessions/{session_id}/rolling-summary")
+async def update_rolling_summary(
+    session_id: str,
+    rolling_summary: str,
+    db: Session = Depends(get_db)
+):
+    """채팅 세션의 rolling summary를 업데이트합니다."""
+    chat_session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
+    if not chat_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="채팅 세션을 찾을 수 없습니다."
+        )
+    
+    chat_session.rolling_summary = rolling_summary
+    db.commit()
+    
+    return {"message": "Rolling summary가 업데이트되었습니다."}
+
+
+@router.delete("/sessions/{session_id}")
+async def delete_chat_session(
+    session_id: str,
+    db: Session = Depends(get_db)
+):
+    """채팅 세션을 삭제합니다."""
+    chat_session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
+    if not chat_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="채팅 세션을 찾을 수 없습니다."
+        )
+    
+    db.delete(chat_session)
+    db.commit()
+    
+    return {"message": "채팅 세션이 삭제되었습니다."}
