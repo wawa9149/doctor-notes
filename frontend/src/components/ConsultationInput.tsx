@@ -289,7 +289,7 @@ export default function ConsultationInput({
             ) : (
               <div className="min-h-[200px] flex flex-col items-center justify-center text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
                 <p className="text-center text-gray-600">
-                  음성 녹음을 시작하면<br/>
+                  음성 녹음이 종료되면<br/>
                   여기에 대화 내용이 표시됩니다.
                 </p>
               </div>

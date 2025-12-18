@@ -13,6 +13,7 @@ from app.schemas.emr import (
     ChatMessageCreate, ChatMessageResponse
 )
 from app.models.emr import Patient
+from app.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -112,7 +113,7 @@ async def chat_query(
         async with httpx.AsyncClient() as client:
             try:
                 # RAG 서비스 URL (실제 서비스 URL로 변경 필요)
-                rag_url = "http://localhost:8001/rag/chat"  # 실제 RAG 서비스 URL로 변경
+                rag_url = settings.RAG_SERVICE_URL + "/rag/chat"  # 실제 RAG 서비스 URL로 변경
                 
                 response = await client.post(
                     rag_url,

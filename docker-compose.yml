@@ -14,7 +14,7 @@ services:
     volumes:
       - chromadb-data:/chroma/chroma
     networks:
-      - doctor-notes-network
+      - mago-services
     restart: unless-stopped
     # healthcheck 임시 비활성화 - ChromaDB가 자체적으로 헬스체크 엔드포인트를 제공하지 않음
     # healthcheck:
@@ -43,15 +43,26 @@ services:
         condition: service_healthy
     environment:
       - PYTHONPATH=/app
-      - RAG_SERVICE_URL=http://rag-service:8001
-      # CORS를 최소화하려면 프론트가 같은 오리진으로 프록시하거나,
-      # 백엔드에서 허용오리진을 ENV로 관리
-      # - ALLOW_ORIGINS=http://localhost,http://example.com
+      - DATABASE_URL=sqlite:////app/data/emr.db
+      - AZURE_API_KEY=${AZURE_API_KEY}
+      - AZURE_ENDPOINT=${AZURE_ENDPOINT}
+      - AZURE_API_VERSION=${AZURE_API_VERSION:-2024-02-01}
+      - AZURE_DEPLOYMENT_NAME=${AZURE_DEPLOYMENT_NAME}
+      - MAGOV_API_KEY=${MAGOV_API_KEY}
+      - RAG_SERVICE_URL=${RAG_SERVICE_URL}
+    volumes:
+      - ./backend/data/sqlite:/app/data
     networks:
-      - doctor-notes-network
+      - mago-services
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "python - <<'PY'\nimport sys, urllib.request\n\
+          try:\n  urllib.request.urlopen('http://localhost:8000/health', timeout=3)\n  sys.exit(0)\n\
+          except Exception:\n  sys.exit(1)\nPY",
+        ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -76,16 +87,16 @@ services:
       # target: runner
     container_name: doctor-notes-frontend
     ports:
-      - "80:3000"
+      - "8004:3000"
     depends_on:
       backend:
         condition: service_healthy
     environment:
-      # 프론트에서 백엔드 접근은 서비스명 DNS를 사용 (같은 네트워크)
-      - NEXT_PUBLIC_API_BASE_URL=http://backend:8000
+      # 브라우저에서 접근할 때는 상대 경로 사용
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8002
       - NODE_ENV=production
     networks:
-      - doctor-notes-network
+      - mago-services
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -111,11 +122,17 @@ services:
       - PYTHONPATH=/app
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
-      - LLM_MODEL=${LLM_MODEL:-gpt-4}
-      - LLM_API_KEY=${LLM_API_KEY}
+      # Azure OpenAI 설정
+      - AZURE_API_KEY=${AZURE_API_KEY}
+      - AZURE_ENDPOINT=${AZURE_ENDPOINT}
+      - AZURE_API_VERSION=${AZURE_API_VERSION:-2024-02-01}
+      - AZURE_DEPLOYMENT_NAME=${AZURE_DEPLOYMENT_NAME}
+      # 임베딩 모델 설정
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
       - EMBEDDING_MODEL_PATH=/opt/models/ko-sroberta
       - HF_HUB_OFFLINE=1
       - TRANSFORMERS_OFFLINE=1
+      # 검색 및 청킹 설정
       - RETRIEVAL_TOP_K=5
       - RETRIEVAL_TOP_M=3
       - CHUNK_SIZE=500
@@ -128,10 +145,16 @@ services:
       # Chroma 퍼시스트 볼륨
       - ./backend/data/embeddings:/app/data/embeddings
     networks:
-      - doctor-notes-network
+      - mago-services
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "python - <<'PY'\nimport sys, urllib.request\n\
+          try:\n  urllib.request.urlopen('http://localhost:8001/health', timeout=3)\n  sys.exit(0)\n\
+          except Exception:\n  sys.exit(1)\nPY",
+        ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -144,8 +167,9 @@ services:
         max-file: "3"
 
 networks:
-  doctor-notes-network:
-    driver: bridge
+  mago-services:
+    external: true
+    name: mago-services
 
 volumes:
   chromadb-data:

@@ -112,7 +112,7 @@ export default function NewConsultationView({
                     <span className="text-gray-600">진료 대기 중</span>
                   </div>
                   <p className="mt-2 text-sm text-gray-500">
-                    환자를 선택하고 "진료 시작" 버튼을 클릭하여 상담을 시작하세요.
+                    환자를 선택하고 &quot;진료 시작&quot; 버튼을 클릭하여 상담을 시작하세요.
                   </p>
                 </div>
               )}
@@ -161,7 +161,6 @@ export default function NewConsultationView({
                   {soapSummary}
                 </pre>
               </div>
-              
               <div className="flex justify-center gap-4 mt-6">
                 <button
                   onClick={() => setIsChatBotOpen(!isChatBotOpen)}
@@ -265,14 +264,6 @@ function ChatBotContent({
   const [isLoading, setIsLoading] = useState(false);
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;

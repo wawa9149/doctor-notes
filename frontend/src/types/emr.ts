@@ -1,5 +1,7 @@
 // src/types/emr.ts
 
+import { ChatSessionResponse, EncounterResponse, SOAPNoteResponse } from "./api";
+
 export interface Period {
   start?: string;
   end?: string;

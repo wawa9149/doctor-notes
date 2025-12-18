@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { getPatient, getPatientRecords } from "@/services/patientService";
 import PatientDetail from "@/components/PatientDetail";
 
@@ -7,7 +8,7 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
-}) {
+}): Promise<Metadata> {
   const { id } = await params;
   const patient = await getPatient(Number(id));
   return {

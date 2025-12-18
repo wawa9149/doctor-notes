@@ -6,6 +6,7 @@ from app.schemas.emr import MergeRequest, MergeResponse, SOAPNoteCreate, SOAPNot
 from app.models.emr import SOAPNote
 from app.db.session import get_db
 from typing import List
+from app.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ async def merge_consultation_content(request: MergeRequest, db: Session = Depend
         
         # RAG 서비스 호출
         async with httpx.AsyncClient(timeout=60.0) as client:
-            rag_url = "http://localhost:8001/rag/merge"
+            rag_url = settings.RAG_SERVICE_URL + "/rag/merge"
             
             response = await client.post(
                 rag_url,

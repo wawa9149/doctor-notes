@@ -23,8 +23,18 @@ class LLMService(LLMRepository):
         self.llm_client = None
         self.use_llm = False
         
+        # 환경변수 디버깅
+        logger.info("=== Azure OpenAI 환경변수 확인 ===")
+        logger.info(f"AZURE_API_KEY: {'설정됨' if settings.AZURE_API_KEY else '미설정'}")
+        logger.info(f"AZURE_ENDPOINT: {settings.AZURE_ENDPOINT or '미설정'}")
+        logger.info(f"AZURE_DEPLOYMENT_NAME: {settings.AZURE_DEPLOYMENT_NAME or '미설정'}")
+        logger.info(f"AZURE_API_VERSION: {settings.AZURE_API_VERSION}")
+        logger.info("=====================================")
+        
         try:
-            if settings.AZURE_API_KEY and settings.AZURE_ENDPOINT:
+            if (settings.AZURE_API_KEY and 
+                settings.AZURE_ENDPOINT and 
+                settings.AZURE_DEPLOYMENT_NAME):
                 self.llm_client = AzureOpenAI(
                     api_key=settings.AZURE_API_KEY,
                     azure_endpoint=settings.AZURE_ENDPOINT,
@@ -33,7 +43,14 @@ class LLMService(LLMRepository):
                 self.use_llm = True
                 logger.info(f"Using Azure OpenAI model: {settings.AZURE_DEPLOYMENT_NAME}")
             else:
-                logger.warning("Azure OpenAI credentials are not fully configured.")
+                missing = []
+                if not settings.AZURE_API_KEY:
+                    missing.append("AZURE_API_KEY")
+                if not settings.AZURE_ENDPOINT:
+                    missing.append("AZURE_ENDPOINT")
+                if not settings.AZURE_DEPLOYMENT_NAME:
+                    missing.append("AZURE_DEPLOYMENT_NAME")
+                logger.warning(f"Azure OpenAI credentials are not fully configured. Missing: {', '.join(missing)}")
 
         except Exception as e:
             logger.error(f"Failed to initialize AzureOpenAI client: {e}")

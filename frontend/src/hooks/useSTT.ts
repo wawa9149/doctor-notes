@@ -171,6 +171,7 @@ export const useSTT = (): UseSTTReturn => {
       let wavBlob: Blob;
       if (audioBlob.type.includes('webm')) {
         console.log('WebM을 WAV로 변환 중...');
+        console.log('audioBlob', audioBlob);
         wavBlob = await convertWebmToWav(audioBlob);
         console.log('WAV 변환 완료');
       } else {

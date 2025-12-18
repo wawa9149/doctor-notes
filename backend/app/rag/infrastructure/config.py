@@ -3,6 +3,7 @@ Infrastructure Configuration
 """
 import os
 from functools import lru_cache
+from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
@@ -16,10 +17,10 @@ class Settings(BaseSettings):
     CHROMA_COLLECTION_KB: str = "kb_psych"
     
     # Azure OpenAI 설정
-    AZURE_API_KEY: str = ""
-    AZURE_ENDPOINT: str = ""
-    AZURE_API_VERSION: str = "2024-02-01"
-    AZURE_DEPLOYMENT_NAME: str = ""
+    AZURE_API_KEY: str = os.getenv("AZURE_API_KEY", "")
+    AZURE_ENDPOINT: str = os.getenv("AZURE_ENDPOINT", "")
+    AZURE_API_VERSION: str = os.getenv("AZURE_API_VERSION", "2024-02-01")
+    AZURE_DEPLOYMENT_NAME: str = os.getenv("AZURE_DEPLOYMENT_NAME", "")
     
     # LLM 호출 공통 설정
     LLM_TEMPERATURE: float = 0.7

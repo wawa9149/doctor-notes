@@ -124,6 +124,7 @@ export function ConsultationProvider({ children }: { children: ReactNode }) {
       });
       
       setCurrentEncounter(encounter);
+      return encounter;
     } catch (error) {
       console.error("진료 접수 생성 실패:", error);
       alert("진료 접수 생성 실패: " + (error instanceof Error ? error.message : "알 수 없는 오류"));

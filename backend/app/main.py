@@ -11,13 +11,7 @@ app.add_middleware(
     allow_origins=[
         # 개발 환경
         "http://localhost:3000",  # Next.js 개발 서버
-        
-        # 프로덕션 환경 (HTTP)
-        "http://localhost",  # 로컬 프로덕션 (포트 80 생략)
-        "http://147.47.41.49",  # 서버 IP 프로덕션 (포트 80 생략)
-        "http://147.47.41.49:8008",  # 서버 IP 프로덕션 (포트 80 생략)
-        
-        # 프로덕션 환경 (HTTPS) - 향후 SSL 적용 시
+        "http://61.74.187.69:8004", # 운영 서버
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],

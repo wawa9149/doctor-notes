@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from app.config import settings
 
 # SQLite 데이터베이스 URL 설정
-SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL or "sqlite:///./emr.db"
+SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL or "sqlite:////app/data/emr.db"
 
 # 엔진 생성
 engine = create_engine(

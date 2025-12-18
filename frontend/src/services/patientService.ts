@@ -4,7 +4,17 @@ import type { PatientListItem } from "../types/patient";
 import type { EMRRecord } from "../types/emr";
 import type { PatientCreateRequest, PatientResponse } from "../types/api";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+// 서버 사이드와 클라이언트 사이드 모두에서 사용할 수 있는 API_BASE_URL
+const getApiBaseUrl = () => {
+  // 서버 사이드에서는 Docker 내부 네트워크 사용
+  if (typeof window === 'undefined') {
+    return "http://backend:8000";
+  }
+  // 클라이언트 사이드에서는 브라우저에서 접근 가능한 URL 사용
+  return process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8002";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export async function getPatients(): Promise<PatientListItem[]> {
   const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.PATIENTS}`, {

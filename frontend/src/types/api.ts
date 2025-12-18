@@ -1,5 +1,5 @@
 // src/types/api.ts
-import type { HumanName } from "./patient";
+import type { HumanName, PatientListItem } from "./patient";
 
 export interface AnalyzeResponse {
   Patient?: {
@@ -120,6 +120,30 @@ export interface ChatRequest {
 export interface ChatResponse {
   answer: string;
   rolling_summary_next?: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+}
+
+export interface ChatSessionResponse {
+  id: number;
+  patient_id: number;
+  encounter_id: number;
+  messages: ChatMessage[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SOAPNoteResponse {
+  id: number;
+  encounter_id: number;
+  soap_summary: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Re-export commonly used types for convenience
